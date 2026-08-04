@@ -119,7 +119,7 @@ export async function refresh({ includeRfp = true, includeIpeds = true } = {}) {
       // Completion rate per institution, so accounts can be ranked by it.
       // Everything below the threshold is a school with the exact problem the
       // product solves, which is the whole point of pulling IPEDS at all.
-      const LOW = Number(process.env.IPEDS_LOW_GRAD_RATE || 40);
+      const LOW = Number(process.env.IPEDS_LOW_GRAD_RATE || 20);
 
       // Work out which endpoint and year actually carry usable rates, rather
       // than assuming and reporting zeros when the assumption is wrong.
@@ -144,6 +144,8 @@ export async function refresh({ includeRfp = true, includeIpeds = true } = {}) {
         universe: universe.length,
         lowThreshold: LOW,
         discovery: found,
+        gradWindow: found.window ?? null,
+        gradMethod: found.method ?? null,
         completionEndpoint: found.endpoint,
         completionYear: found.year,
         matched: rec.matched.map((m) => {
