@@ -18,7 +18,7 @@ async function get(path, params = {}) {
     if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
   }
   const res = await fetch(url, {
-    signal: AbortSignal.timeout(Number(process.env.IPEDS_TIMEOUT_MS || 20000)),
+    signal: AbortSignal.timeout(Number(process.env.IPEDS_TIMEOUT_MS || 45000)),
     headers: {
       Accept: 'application/json',
       'User-Agent': 'ZogoTech-Sales-Intel/0.1 (+contact: nburrell@zogotech.com)',
@@ -35,7 +35,7 @@ async function pageAll(path, params = {}, cap = Number(process.env.IPEDS_PAGE_CA
   const out = [...(body.results || [])];
   for (let i = 0; i < cap && body.next; i++) {
     const res = await fetch(body.next, {
-      signal: AbortSignal.timeout(Number(process.env.IPEDS_TIMEOUT_MS || 20000)),
+      signal: AbortSignal.timeout(Number(process.env.IPEDS_TIMEOUT_MS || 45000)),
       headers: { Accept: 'application/json' },
     });
     if (!res.ok) break;
@@ -132,6 +132,71 @@ export async function completionByUnit(unitids, year, endpoint = 'gradRates') {
   const rows = [];
   for (let i = 0; i < unitids.length; i += CHUNK) {
     const part = await metricsFor(unitids.slice(i, i + CHUNK), year, endpoint).catch(() => []);
+    rows.push(...part);
+  }
+  const by = new Map();
+  for (const r of rows) {
+    if (!by.has(r.unitid)) by.set(r.unitid, []);
+    by.get(r.unitid).push(r);
+  }
+  const out = [];
+  for (const [unitid, rs] of by) {
+    const c = completionRate(rs);
+    if (c) out.push({ unitid, rate: Math.round(c.rate * 10) / 10, method: c.method, rows: c.rows });
+  }
+  return out;
+}
+
+
+// ---- Endpoint discovery ----------------------------------------------------
+// Endpoint names and the newest year carrying data both shift between portal
+// releases, and guessing wrong produces an empty report that looks like a bug.
+// Probe a single institution across the candidates and use whatever answers.
+
+const COMPLETION_CANDIDATES = [
+  'grad-rates', 'grad-rates-200pct', 'completers', 'outcome-measures',
+];
+
+export async function discoverCompletion({
+  unitid = 100654,
+  years = [2022, 2021, 2020, 2019, 2018],
+  ms = 30000,
+} = {}) {
+  const tried = [];
+  for (const endpoint of COMPLETION_CANDIDATES) {
+    for (const year of years) {
+      const url = `${BASE}/college-university/ipeds/${endpoint}/${year}/?unitid=${unitid}`;
+      try {
+        const r = await fetch(url, {
+          signal: AbortSignal.timeout(ms),
+          headers: { Accept: 'application/json',
+            'User-Agent': 'ZogoTech-Sales-Intel/0.1 (+contact: nburrell@zogotech.com)' },
+        });
+        if (!r.ok) { tried.push({ endpoint, year, status: r.status }); continue; }
+        const body = await r.json();
+        const rows = body.results || [];
+        if (!rows.length) { tried.push({ endpoint, year, rows: 0 }); continue; }
+        // Only useful if a rate can actually be derived from these rows.
+        const c = completionRate(rows);
+        tried.push({ endpoint, year, rows: rows.length, usable: !!c, method: c?.method || null });
+        if (c) return { endpoint, year, method: c.method, fields: Object.keys(rows[0]), tried };
+      } catch (e) {
+        tried.push({ endpoint, year, error: e.name === 'TimeoutError' ? 'timeout' : e.message });
+      }
+    }
+  }
+  return { endpoint: null, year: null, tried };
+}
+
+// Same as completionByUnit but against a discovered endpoint path.
+export async function completionByPath(unitids, endpoint, year) {
+  const CHUNK = Number(process.env.IPEDS_CHUNK || 40);
+  const rows = [];
+  for (let i = 0; i < unitids.length; i += CHUNK) {
+    const part = await pageAll(
+      `/college-university/ipeds/${endpoint}/${year}/`,
+      { unitid: unitids.slice(i, i + CHUNK).join(',') },
+    ).catch(() => []);
     rows.push(...part);
   }
   const by = new Map();
