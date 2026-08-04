@@ -175,7 +175,16 @@ fetch('/api/data').then(function(r){return r.json()}).then(function(d){
   LOW=ip.lowThreshold||40;
   withRate=M.filter(function(m){return typeof m.gradRate==='number'});
   low=withRate.filter(function(m){return m.gradRate<LOW}).sort(function(a,b){return a.gradRate-b.gradRate});
-  el('lowsub').textContent='Accounts whose IPEDS graduation rate falls under '+LOW+'%. '
+  var win = ip.gradWindow!=null ? String(ip.gradWindow) : null;
+  var winText = win
+    ? (win==='150'||win==='3' ? '150% of normal time, a three-year cohort for a two-year college'
+      : (win==='200'||win==='4' ? '200% of normal time, a four-year cohort'
+      : (win==='100'||win==='2' ? '100% of normal time, a two-year cohort'
+      : win+'-year cohort')))
+    : 'the only cohort window the data offered';
+  el('lowsub').textContent='Graduation rate measured at '+winText+', from '
+    +(ip.completionEndpoint||'IPEDS')+' for '+(ip.completionYear||ip.year)+'. '
+    +'Accounts falling under '+LOW+'%. '
     +'These are institutions with the exact problem the product solves, and the rate is their own '
     +'published federal number rather than anything inferred. Change the threshold with IPEDS_LOW_GRAD_RATE.';
   el('low').innerHTML = low.length ? low.map(function(m){

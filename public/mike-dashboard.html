@@ -57,6 +57,14 @@
   .grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:20px}
   .grid>.tile{grid-column:span 2;min-width:0}
   .grid>.tile.wide{grid-column:span 3;min-height:0}
+  /* full width: spans the whole grid so the cards after it wrap onto the next row */
+  .grid>.tile.full{grid-column:1 / -1;min-height:0}
+  .full .nsplit{display:grid;grid-template-columns:minmax(0,270px) minmax(0,1fr);
+    gap:36px;margin-top:auto;padding-top:22px;align-items:start}
+  .full .nlist{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:30px;row-gap:0}
+  @media(max-width:1040px){.full .nlist{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:820px){.full .nsplit{grid-template-columns:minmax(0,1fr);gap:22px}
+    .full .nlist{grid-template-columns:minmax(0,1fr)}}
   .wide .split{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:auto;padding-top:20px}
   .wide .splab{font-size:9.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
     color:rgba(255,255,255,0.72);margin-bottom:10px}
@@ -64,11 +72,13 @@
   @media(max-width:940px){
     .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
     .grid>.tile,.grid>.tile.wide{grid-column:span 1}
+    .grid>.tile.full{grid-column:1 / -1}
     .wide .split{grid-template-columns:1fr 1fr}
   }
   @media(max-width:620px){
     .grid{grid-template-columns:minmax(0,1fr)}
     .grid>.tile,.grid>.tile.wide{grid-column:span 1}
+    .grid>.tile.full{grid-column:1 / -1}
   }
 
   .tile{position:relative;overflow:visible;display:flex;flex-direction:column;
@@ -727,7 +737,7 @@ function build(){
             'including Wyoming CCC at $321,000 and Los Angeles CCD at $188,000.')]])+
       '</div>'+
       '<div><div class="splab">Most recent</div><div class="nlist">'+
-        NOTES.slice(0,6).map(n=>
+        NOTES.slice(0,9).map(n=>
           '<div class="nrow" tabindex="0"><span class="nc">'+esc(n.col)+
           '<i class="lvl">'+n.lvl+'</i></span>'+
           '<span class="nq">'+n.txt+'</span>'+
