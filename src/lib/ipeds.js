@@ -86,61 +86,101 @@ export function summarise(rows) {
 
 
 // ---- Graduation rates ------------------------------------------------------
-// IPEDS reports the GR component as many rows per institution: one per race,
-// sex and attendance status, PLUS an "all students" total row. Summing every row
-// double counts, because the total already contains the subgroups. The fix is to
-// use the total row and ignore the breakdowns.
+// The portal's column names are not published anywhere reachable and shift
+// between releases, so nothing here is hardcoded to a field name. The shape is
+// inspected at runtime and every decision is recorded, so a wrong answer can be
+// traced instead of appearing as a silent zero.
 //
-// Urban codes "all" as 99 on the disaggregating fields.
+// Three things have to be right, and getting any of them wrong yields nonsense:
+//   1. Use the "all students" total row, not the race and sex breakdowns, which
+//      the total already contains.
+//   2. Use one cohort window. IPEDS reports completion at 100%, 150% and 200%
+//      of normal time; averaging across them is meaningless.
+//   3. Divide completers by the adjusted cohort, not by anything else numeric.
 
 const ALL = 99;
-const GROUP_FIELDS = ['race', 'sex', 'ftpt', 'sector', 'cohort_level'];
-const RATE_FIELDS = ['grad_rate', 'graduation_rate', 'grad_rate_150', 'grad_rate_150pct'];
-const NUM_PAIRS = [
-  ['grad_cohort_ct', 'grad_cohort'],
-  ['completers_150pct', 'cohort'],
-  ['grad_150', 'grad_cohort'],
-  ['completers', 'cohort'],
-  ['awards', 'cohort'],
-];
 
-// Prefer the total row. If the data is not disaggregated at all, every row counts.
-function totalRows(rows) {
-  const present = GROUP_FIELDS.filter((f) => rows.some((r) => r[f] !== undefined));
-  if (!present.length) return rows;
-  const totals = rows.filter((r) => present.every((f) => r[f] === ALL || r[f] === undefined));
-  return totals.length ? totals : rows;
+// Value meaning "all" on a disaggregating column, whatever it is called.
+const isAll = (v) => v === ALL || v === '99' || v === 99 || v == null;
+
+function classify(rows) {
+  const keys = Object.keys(rows[0] || {});
+  const numeric = keys.filter((k) => rows.some((r) => typeof r[k] === 'number'));
+
+  // Columns that split the data rather than measure it.
+  const groupKeys = keys.filter((k) => /^(race|sex|ftpt|gender|ethnicity)$/i.test(k));
+
+  // The cohort window: 100 / 150 / 200 percent, or a year count.
+  const windowKey = keys.find((k) => /(cohort_years|years_to|pct_time|time_pct|percent_time|cohort_pct)/i.test(k))
+    || keys.find((k) => /^(cohort|level_of_study)$/i.test(k) && !numeric.includes(k));
+
+  // A published rate beats computing one.
+  const rateKey = numeric.find((k) => /rate/i.test(k) && !/(cohort|count|_ct)$/i.test(k));
+
+  // Denominator: the cohort. Numerator: the completers.
+  const denKey = numeric.find((k) => /cohort/i.test(k)
+    && !/(_ct$|_count$|completers|pct|rate|years)/i.test(k));
+  const numKey = numeric.find((k) => /(completers|completions|_ct$|grad_150|graduates)/i.test(k));
+
+  return { keys, numeric, groupKeys, windowKey, rateKey, denKey, numKey };
+}
+
+// Prefer the total row; fall back to everything if the data is not split.
+function totals(rows, groupKeys) {
+  if (!groupKeys.length) return rows;
+  const t = rows.filter((r) => groupKeys.every((k) => isAll(r[k])));
+  return t.length ? t : rows;
+}
+
+// Prefer 150% of normal time, which is the Student Right-to-Know standard.
+// For a two-year college that is three years.
+function oneWindow(rows, windowKey) {
+  if (!windowKey) return { rows, window: null };
+  const vals = [...new Set(rows.map((r) => r[windowKey]))];
+  if (vals.length <= 1) return { rows, window: vals[0] ?? null };
+  const prefer = [150, '150', 3, '3', 6, '6', 4, '4', 200, '200', 100, '100'];
+  for (const p of prefer) {
+    if (vals.includes(p)) return { rows: rows.filter((r) => r[windowKey] === p), window: p };
+  }
+  const pick = vals[0];
+  return { rows: rows.filter((r) => r[windowKey] === pick), window: pick };
 }
 
 export function graduationRate(rows) {
   if (!rows || !rows.length) return null;
-  const use = totalRows(rows);
+  const f = classify(rows);
+  const t = totals(rows, f.groupKeys);
+  const w = oneWindow(t, f.windowKey);
+  const use = w.rows;
+  if (!use.length) return null;
 
-  // A published rate on the total row wins.
-  for (const f of RATE_FIELDS) {
-    const vals = use.map((r) => r[f]).filter((v) => typeof v === 'number' && v >= 0);
+  const diag = {
+    window: w.window, windowKey: f.windowKey,
+    groupedBy: f.groupKeys, rowsUsed: use.length, rowsSeen: rows.length,
+  };
+
+  if (f.rateKey) {
+    const vals = use.map((r) => r[f.rateKey]).filter((v) => typeof v === 'number' && v >= 0);
     if (vals.length) {
       const v = vals.reduce((a, b) => a + b, 0) / vals.length;
-      return { rate: v > 1 ? v : v * 100, method: f, rows: vals.length, ofTotal: use.length !== rows.length };
+      return { rate: v > 1 ? v : v * 100, method: f.rateKey, ...diag };
     }
   }
 
-  // Otherwise completers over cohort, on the total rows only.
-  for (const [num, den] of NUM_PAIRS) {
-    let n = 0, d = 0, used = 0;
+  if (f.numKey && f.denKey) {
+    let n = 0, d = 0;
     for (const r of use) {
-      if (typeof r[num] === 'number' && typeof r[den] === 'number' && r[den] > 0) {
-        n += r[num]; d += r[den]; used++;
+      if (typeof r[f.numKey] === 'number' && typeof r[f.denKey] === 'number' && r[f.denKey] > 0) {
+        n += r[f.numKey]; d += r[f.denKey];
       }
     }
-    if (d > 0) {
-      return { rate: (n / d) * 100, method: `${num}/${den}`, rows: used, ofTotal: use.length !== rows.length };
-    }
+    if (d > 0) return { rate: (n / d) * 100, method: `${f.numKey}/${f.denKey}`, ...diag };
   }
-  return null;
+
+  // Nothing usable: hand back what was seen so it can be reported, not swallowed.
+  return { rate: null, method: null, fields: f.keys, numeric: f.numeric, ...diag };
 }
 
-// Kept as an alias so nothing breaks; graduation rate is the correct IPEDS name.
 export const completionRate = graduationRate;
 
 export async function completionByUnit(unitids, year, endpoint = 'gradRates') {
@@ -158,7 +198,9 @@ export async function completionByUnit(unitids, year, endpoint = 'gradRates') {
   const out = [];
   for (const [unitid, rs] of by) {
     const c = graduationRate(rs);
-    if (c) out.push({ unitid, rate: Math.round(c.rate * 10) / 10, method: c.method, rows: c.rows });
+    if (c && c.rate != null) {
+      out.push({ unitid, rate: Math.round(c.rate * 10) / 10, method: c.method, window: c.window });
+    }
   }
   return out;
 }
