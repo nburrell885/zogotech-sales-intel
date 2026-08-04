@@ -97,7 +97,7 @@
   <div class="panel" id="list"></div>
 
   <div class="sec"><span class="oline"></span><h2>Sources</h2><span class="line"></span></div>
-  <div class="secsub">There is no single feed for this, so several are read and anything failing is reported rather than quietly returning nothing.</div>
+  <div class="secsub">Three layers. The publications themselves, including their leadership sections. Then those same publications searched by name so we reach their archives rather than only today's front page. Then open searches, which catch the local paper announcing a hire that the trade press never covered. Anything failing is listed rather than quietly returning nothing.</div>
   <div class="panel" id="sources"></div>
 
   <div class="foot" id="foot"></div>
@@ -120,6 +120,7 @@ function paint(){
     if(m.orgName) chips+='<span class="chip good">'+esc(m.orgName)+'</span> ';
     else if(m.candidate) chips+='<span class="chip warn">Maybe '+esc(m.candidate)+'</span> ';
     (m.titles||[]).slice(0,2).forEach(function(t){chips+='<span class="chip info">'+esc(t)+'</span> '});
+    if(m.layer) chips+='<span class="chip dim">'+esc(m.layer)+'</span> ';
     return '<div class="row" style="grid-template-columns:minmax(0,1fr) auto 96px 92px">'
       +'<div><div class="nm">'+esc(m.title)+'</div>'
       +'<div class="who">'+esc(m.source)+(m.summary?' &middot; '+esc(m.summary.slice(0,140)):'')+'</div></div>'
