@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leads Set by Account Executive · ZogoTech Sales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#123B63; --navy-2:#1D5488; --sky:#3E9BD6; --sky-2:#5B93C4;
+    --sky-wash:#E8F2FA; --orange:#F2872E; --orange-deep:#D66A16;
+    --paper:#FBFCFE; --card:#FFFFFF; --ink:#0F2438; --ink-2:#4A6076; --ink-3:#8AA0B4;
+    --rule:#DCE7F1; --rule-2:#EDF3F9; --miss:#C25A3A; --good:#2E7D6B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:
+      radial-gradient(1200px 480px at 85% -12%, var(--sky-wash) 0%, transparent 58%),
+      var(--paper);
+    color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:14px;
+    line-height:1.55;padding:40px 22px 72px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto}
+
+  .masthead{margin-bottom:26px}
+  .kicker{display:inline-flex;align-items:center;gap:9px;font-size:10.5px;font-weight:600;
+    letter-spacing:0.16em;text-transform:uppercase;color:var(--navy-2);margin-bottom:13px}
+  .kicker .dot{width:7px;height:7px;border-radius:50%;background:var(--orange);
+    box-shadow:0 0 0 3px rgba(242,135,46,0.18)}
+  h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:40px;line-height:1.05;
+    letter-spacing:-0.02em;color:var(--navy)}
+  h1 em{font-style:normal;color:var(--orange-deep);font-weight:700}
+  .sub{display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-top:14px;
+    padding-top:14px;border-top:2px solid var(--navy)}
+  .sub .lede{font-size:14px;color:var(--ink-2);max-width:58ch}
+  .sub .stamp{margin-left:auto;font-size:11px;color:var(--ink-3);white-space:nowrap;
+    background:var(--sky-wash);padding:5px 11px;border-radius:20px}
+
+  .toggles{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap}
+  .toggles .tlab{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:600}
+  .seg{display:inline-flex;background:var(--paper);border:1px solid var(--rule);
+    border-radius:9px;padding:3px}
+  .seg button{font-family:'Inter';font-size:11px;background:transparent;color:var(--ink-2);
+    border:0;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:600}
+  .seg button[aria-pressed=true]{background:var(--navy);color:#fff}
+  .seg button:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+  .tnote{font-size:11.5px;color:var(--ink-3)}
+
+  /* summary cells */
+  .strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:14px;margin:26px 0 8px}
+  .cell{border-radius:16px;padding:20px;position:relative;overflow:hidden;
+    background:var(--fill,var(--navy));box-shadow:0 14px 30px -18px var(--glow,rgba(18,59,99,0.5))}
+  .cell::after{content:'';position:absolute;right:-30px;top:-30px;width:110px;height:110px;
+    border-radius:50%;background:rgba(255,255,255,0.12)}
+  .cell::before{content:'';position:absolute;left:-26px;bottom:-40px;width:96px;height:96px;
+    border-radius:50%;background:rgba(255,255,255,0.07)}
+  .cell>*{position:relative;z-index:1}
+  .cell .k{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;
+    color:rgba(255,255,255,0.82);margin-bottom:10px;font-weight:600;position:relative;z-index:1}
+  .cell .v{font-family:'Space Grotesk',sans-serif;font-size:29px;font-weight:700;color:#fff;
+    line-height:1;letter-spacing:-0.02em;position:relative;z-index:1}
+  .cell .v small{font-size:15px;color:rgba(255,255,255,0.7);font-weight:600}
+  .cell .cap{font-size:10.5px;color:rgba(255,255,255,0.72);margin-top:9px;position:relative;z-index:1}
+
+  /* section headers */
+  .sec{display:flex;align-items:center;gap:10px;margin:38px 0 6px}
+  .sec h2{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;
+    letter-spacing:0.03em;text-transform:uppercase;color:var(--navy)}
+  .sec .oline{width:16px;height:2px;background:var(--orange)}
+  .sec .line{flex:1;height:1px;background:var(--rule)}
+  .secsub{font-size:12px;color:var(--ink-3);margin:0 0 16px 26px}
+
+  .panel{background:var(--card);border:1px solid var(--rule);border-radius:18px;
+    padding:26px 26px 20px;margin-bottom:20px;
+    box-shadow:0 1px 2px rgba(18,59,99,0.04),0 18px 40px -26px rgba(18,59,99,0.22)}
+  .panel-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+  .panel-head h3{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:17px;color:var(--navy)}
+  .panel-head .meta{margin-left:auto;font-size:11.5px;color:var(--ink-3)}
+
+  /* column charts */
+  .cols{display:flex;gap:8px;align-items:flex-end;padding-top:58px}
+  .col{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:7px}
+  .stack{position:relative;width:100%;height:132px;display:flex;flex-direction:column-reverse;
+    border-radius:6px 6px 0 0;background:var(--rule-2)}
+  .stack .seg-b{width:100%;min-height:2px}
+  .stack .seg-b:first-child{border-radius:6px 6px 0 0}
+  .stack .seg-b.c{background:linear-gradient(180deg,#1D5488,#123B63)}
+  .stack .seg-b.r{background:linear-gradient(180deg,#7FB8DE,#3E9BD6)}
+  .stack .seg-b.solo{background:linear-gradient(180deg,var(--sc1,#1D5488),var(--sc2,#123B63))}
+  .cnum{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;color:var(--navy)}
+  .cnum.zero{color:var(--ink-3);font-weight:400}
+  .clab{font-size:9.5px;color:var(--ink-3);text-align:center;line-height:1.3}
+  .col.peak .clab{color:var(--orange-deep);font-weight:600}
+
+  /* tooltip */
+  .cell.hoverzone{position:relative;cursor:default}
+  .cell .tip{position:absolute;left:0;bottom:calc(100% + 9px);z-index:40;
+    background:#0A1F33;color:#fff;border-radius:11px;padding:12px 14px;min-width:220px;max-width:330px;
+    box-shadow:0 14px 34px -8px rgba(6,20,34,0.6);opacity:0;transform:translateY(4px);
+    pointer-events:none;transition:opacity .14s,transform .14s;font-size:11.5px;text-align:left}
+  .cell.hoverzone:hover .tip,.cell.hoverzone:focus-within .tip{opacity:1;transform:translateY(0)}
+  .cell .tip b{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:10.5px;
+    color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:7px}
+  .cell .tip .cr{display:flex;justify-content:space-between;gap:12px;padding:2.5px 0;align-items:baseline}
+  .cell .tip .cr span:first-child{color:rgba(255,255,255,0.9)}
+  .stack .tip{position:absolute;left:50%;transform:translate(-50%,4px);bottom:calc(100% + 9px);
+    z-index:20;background:var(--navy);color:#fff;border-radius:10px;padding:11px 13px;
+    min-width:212px;max-width:290px;box-shadow:0 12px 30px -8px rgba(18,59,99,0.5);
+    opacity:0;pointer-events:none;transition:opacity .14s,transform .14s;font-size:11.5px;text-align:left}
+  .col:hover .stack .tip,.col:focus-within .stack .tip{opacity:1;transform:translate(-50%,0)}
+  .col:first-child .stack .tip{left:0;transform:translate(0,4px)}
+  .col:first-child:hover .stack .tip{transform:translate(0,0)}
+  .col:last-child .stack .tip{left:auto;right:0;transform:translate(0,4px)}
+  .col:last-child:hover .stack .tip{transform:translate(0,0)}
+  .tip b{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:10.5px;
+    color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.05em;
+    display:block;margin-bottom:6px}
+  .tip b+b{margin-top:9px}
+  .tip .cr{display:flex;justify-content:space-between;gap:12px;padding:2px 0;align-items:baseline}
+  .tip .cr span:first-child{color:rgba(255,255,255,0.9)}
+  .tip .cr .st{font-size:9px;letter-spacing:0.05em;text-transform:uppercase;
+    font-weight:600;white-space:nowrap;padding:1px 5px;border-radius:4px}
+  .tip .cr .st.conv{background:rgba(255,255,255,0.9);color:#0B3A2F}
+  .tip .cr .st.open{background:rgba(255,255,255,0.28);color:#fff}
+  .tip .cr .st.arch{background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.75)}
+  .tip .empty{color:rgba(255,255,255,0.7)}
+
+  .legend{display:flex;gap:20px;flex-wrap:wrap;align-items:center;font-size:10.5px;
+    color:var(--ink-2);margin-top:20px;padding-top:16px;border-top:1px solid var(--rule-2);font-weight:500}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .sw{width:18px;height:10px;border-radius:3px;display:inline-block}
+  .sw.c{background:linear-gradient(180deg,#1D5488,#123B63)}
+  .sw.r{background:linear-gradient(180deg,#7FB8DE,#3E9BD6)}
+
+  /* per-AE */
+  .ae-head{display:flex;align-items:center;gap:13px;flex-wrap:wrap;
+    padding-bottom:18px;margin-bottom:20px;border-bottom:1px solid var(--rule-2)}
+  .ae-badge{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;
+    font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;color:#fff;flex:none}
+  .ae-name{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:20px;color:var(--navy)}
+  .ae-sub{font-size:10.5px;color:var(--ink-3)}
+  .ae-stats{margin-left:auto;display:flex;gap:26px}
+  .ae-stat{text-align:right}
+  .ae-stat .n{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:var(--navy);line-height:1}
+  .ae-stat .l{font-size:9.5px;letter-spacing:0.07em;text-transform:uppercase;color:var(--ink-3);margin-top:4px}
+  .subhead{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-3);
+    font-weight:600;margin:6px 0 0}
+  .subhead+.cols{padding-top:52px}
+  .split{margin-top:26px}
+
+  /* per-AE panels are filled colour cells with the same bubble accents */
+  .panel.ae-panel{position:relative;overflow:hidden;border:0;
+    background:var(--pfill);box-shadow:0 18px 44px -22px var(--pglow)}
+  .panel.ae-panel::after{content:'';position:absolute;right:-46px;top:-46px;width:190px;height:190px;
+    border-radius:50%;background:rgba(255,255,255,0.13);pointer-events:none}
+  .panel.ae-panel::before{content:'';position:absolute;left:-40px;bottom:-64px;width:158px;height:158px;
+    border-radius:50%;background:rgba(255,255,255,0.07);pointer-events:none}
+  .panel.ae-panel>*{position:relative;z-index:1}
+  .ae-panel .ae-head{border-bottom-color:var(--prule)}
+  .ae-panel .ae-badge{background:var(--pfg);color:var(--pfill-solid)}
+  .ae-panel .ae-name,.ae-panel .ae-stat .n{color:var(--pfg)}
+  .ae-panel .ae-sub,.ae-panel .ae-stat .l,.ae-panel .subhead{color:var(--pfg-2)}
+  .ae-panel .stack{background:var(--ptrack)}
+  .ae-panel .stack .seg-b.solo{background:linear-gradient(180deg,var(--pbar1),var(--pbar2))}
+  .ae-panel .cnum{color:var(--pfg)}
+  .ae-panel .cnum.zero{color:var(--pfg-3)}
+  .ae-panel .clab{color:var(--pfg-2)}
+  .ae-panel .col.peak .clab{color:var(--pfg);font-weight:700}
+  .ae-panel .stack .tip{background:#0A1F33;box-shadow:0 14px 34px -8px rgba(6,20,34,0.6)}
+  .ae-panel .status{background:var(--ptrack)}
+  .ae-panel .status i.conv{background:var(--pfg)}
+  .ae-panel .status i.open{background:var(--pfg-mid)}
+  .ae-panel .status i.arch{background:var(--pfg-3)}
+  .ae-panel .statleg span{color:var(--pfg-2)}
+  .ae-panel .statleg i.conv{background:var(--pfg)}
+  .ae-panel .statleg i.open{background:var(--pfg-mid)}
+  .ae-panel .statleg i.arch{background:var(--pfg-3)}
+  .ae-panel .col:focus-visible{outline:2px solid var(--pfg);outline-offset:3px;border-radius:6px}
+
+  /* status strip */
+  .status{display:flex;height:11px;border-radius:6px;overflow:hidden;margin-top:22px;background:var(--rule-2)}
+  .status i{display:block;height:100%}
+  .status i.conv{background:var(--good)} .status i.open{background:var(--sky)} .status i.arch{background:var(--ink-3)}
+  .statleg{display:flex;gap:18px;margin-top:9px;flex-wrap:wrap}
+  .statleg span{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;color:var(--ink-2);font-weight:500}
+  .statleg i{width:9px;height:9px;border-radius:2px;display:inline-block}
+  .statleg i.conv{background:var(--good)} .statleg i.open{background:var(--sky)} .statleg i.arch{background:var(--ink-3)}
+
+  /* table */
+  .tbl-wrap{background:var(--card);border:1px solid var(--rule);border-radius:16px;
+    overflow:hidden;margin-bottom:26px;box-shadow:0 1px 2px rgba(18,59,99,0.04)}
+  .tbl-head{display:flex;align-items:center;gap:10px;padding:16px 20px 14px;border-bottom:1px solid var(--rule)}
+  .tbl-head h2{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:var(--navy)}
+  .tbl-head .count{margin-left:auto;font-size:11px;color:var(--ink-3)}
+  table.data{width:100%;border-collapse:collapse}
+  table.data th{font-size:9.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3);
+    text-align:left;font-weight:500;padding:11px 10px 11px 20px;background:var(--sky-wash)}
+  table.data td{padding:10px;border-bottom:1px solid var(--rule-2);font-size:13px;padding-left:20px}
+  table.data td.col-name{font-weight:600;color:var(--navy)}
+  table.data tr:last-child td{border-bottom:0}
+  table.data tbody tr:hover{background:var(--sky-wash)}
+  td.id{font-size:11px;color:var(--ink-3)}
+  td.arrcell{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--navy);
+    text-align:right;padding-right:20px}
+  .who-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap}
+  .who-pill i{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .chip{font-size:9.5px;letter-spacing:0.05em;padding:2px 7px;border-radius:5px;
+    font-weight:600;text-transform:uppercase;white-space:nowrap}
+  .chip.conv{background:rgba(46,125,107,0.14);color:var(--good)}
+  .chip.open{background:rgba(62,155,214,0.16);color:var(--navy-2)}
+  .chip.arch{background:rgba(138,160,180,0.2);color:var(--ink-2)}
+
+  .note{display:flex;gap:14px;background:var(--sky-wash);border:1px solid var(--rule);
+    border-radius:14px;padding:16px 20px;font-size:13px;color:var(--ink-2);margin:30px 0}
+  .note .mark{flex:none;width:4px;border-radius:3px;background:var(--orange)}
+  .note b{color:var(--navy);font-weight:600}
+  .foot{font-size:10.5px;color:var(--ink-3);text-align:center;padding-top:8px}
+
+  @media(max-width:720px){
+    h1{font-size:30px}
+    .cols{gap:4px;padding-top:48px}
+    .clab{font-size:8px}
+    .stack{height:104px}
+    .ae-stats{margin-left:0;width:100%;justify-content:flex-start;gap:20px}
+    .ae-stat{text-align:left}
+  }
+  @media(prefers-reduced-motion:no-preference){
+    .stack .seg-b{animation:rise .5s cubic-bezier(.2,.7,.3,1) both;transform-origin:bottom}
+    @keyframes rise{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+  }
+
+  /* ---- Display face ----
+     Sora carries the titles: wider apertures and looser fitting than Space Grotesk,
+     which stays on every number so the data keeps the same voice. */
+  h1,h2,h3,
+  .sec h2,.tbl-head h2,.tbl-head h3,.panel-head h3,.ph .nm,
+  .ae-name,.bcard-meta .nm,.cd-meta .t{
+    font-family:'Sora',system-ui,sans-serif}
+  h1{font-weight:700;letter-spacing:-0.008em;line-height:1.12}
+  h1 em{font-weight:700}
+  .sec h2{font-weight:600;letter-spacing:0.09em}
+  .tbl-head h2,.tbl-head h3,.panel-head h3,.ph .nm,.ae-name,.bcard-meta .nm,.cd-meta .t{
+    font-weight:600;letter-spacing:-0.002em}
+
+  /* ---- Data lens: any visual can open the rows behind it ---- */
+  .dl{margin-top:18px;border-top:1px solid var(--rule-2);padding-top:13px}
+  .dl-btn{display:flex;align-items:center;gap:9px;width:100%;font-family:'Inter',sans-serif;
+    font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;
+    color:var(--ink-2);background:transparent;border:0;padding:6px 0;cursor:pointer;text-align:left}
+  .dl-btn:hover{color:var(--navy)}
+  .dl-btn:focus-visible{outline:2px solid var(--sky);outline-offset:3px;border-radius:6px}
+  .dl-ico{width:20px;height:20px;border-radius:6px;background:var(--sky-wash);color:var(--navy-2);
+    display:grid;place-items:center;font-size:14px;font-weight:700;flex:none;line-height:1}
+  .dl-cnt{margin-left:auto;font-weight:500;letter-spacing:0;text-transform:none;
+    font-size:10.5px;color:var(--ink-3)}
+  .dl-body{display:none;margin-top:12px;max-height:360px;overflow:auto;
+    border:1px solid var(--rule);border-radius:12px;background:var(--card)}
+  .dl.open .dl-body{display:block}
+  .dl-tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+  .dl-tbl th{position:sticky;top:0;z-index:2;background:var(--sky-wash);text-align:left;
+    font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3);
+    font-weight:600;padding:9px 13px;white-space:nowrap}
+  .dl-tbl th.n{text-align:right}
+  .dl-tbl td{padding:8px 13px;border-top:1px solid var(--rule-2);color:var(--ink-2)}
+  .dl-tbl td:first-child{color:var(--navy);font-weight:600}
+  .dl-tbl td.n{text-align:right;font-family:'Space Grotesk',sans-serif;font-weight:600;color:var(--ink)}
+  .dl-tbl tbody tr:hover{background:var(--sky-wash)}
+  .dl-note{padding:11px 14px;font-size:11px;color:var(--ink-3);
+    border-top:1px solid var(--rule-2);line-height:1.5}
+  /* on the colour-filled panels the button inverts, the table stays white */
+  .ae-panel .dl{border-top-color:var(--prule)}
+  .ae-panel .dl-btn{color:var(--pfg-2)}
+  .ae-panel .dl-btn:hover{color:var(--pfg)}
+  .ae-panel .dl-ico{background:rgba(255,255,255,0.9);color:#0B2A40}
+  .ae-panel .dl-cnt{color:var(--pfg-3)}
+  .ae-panel .dl-body{border-color:transparent}
+
+  /* ---- tooltip rows must never overflow their panel ----
+     The label takes the slack and wraps; the figure keeps its width and stays put. */
+  .tip .cr,.segtip .cr{align-items:baseline}
+  .tip .cr>span:first-child,.segtip .cr>span:first-child{
+    flex:1 1 auto;min-width:0;overflow-wrap:anywhere;word-break:normal}
+  .tip .cr>span:last-child,.segtip .cr>span:last-child{
+    flex:0 0 auto;white-space:nowrap;text-align:right}
+  .tip .cr>span:only-child,.segtip .cr>span:only-child{flex:1 1 auto}
+
+  /* ---- ring gauge, matching the ARR Attainment report ---- */
+  .rg{position:relative;flex:none;line-height:0}
+  .rg svg{display:block;transform:rotate(-90deg)}
+  .rg .rv{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:1px;line-height:1;font-family:'Space Grotesk',sans-serif;
+    font-weight:700;color:var(--rgtxt,#fff)}
+  .rg .rv small{font-size:9px;font-weight:600;opacity:0.7;letter-spacing:0.04em;
+    text-transform:uppercase;line-height:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="kicker"><span class="dot"></span> ZogoTech Sales &middot; Lead Generation Report</div>
+    <h1>Leads Set by <em>Account Executive</em></h1>
+    <div class="sub">
+      <div class="lede">New leads created in Pipedrive, by the week and month they were set, with the ARR each converted lead went on to generate. Team totals first, then each account executive. Hover any column for the schools behind it.</div>
+      <div class="stamp" id="stamp"></div>
+    </div>
+    <div class="toggles">
+      <span class="tlab">19 Apr bulk load</span>
+      <span class="seg">
+        <button id="bIn" aria-pressed="false">Include</button>
+        <button id="bEx" aria-pressed="true">Exclude</button>
+      </span>
+      <span class="tnote" id="bulkNote"></span>
+    </div>
+  </header>
+
+  <div class="strip" id="strip"></div>
+
+  <div class="sec"><span class="oline"></span><h2>Team Totals</h2><span class="line"></span></div>
+  <div class="secsub">Both account executives combined, split by owner within each column.</div>
+
+  <div class="panel">
+    <div class="panel-head"><h3>Leads Set per Week</h3><span class="meta" id="wkMeta"></span></div>
+    <div class="cols" id="teamWeek"></div>
+    <div class="legend">
+      <span><i class="sw c"></i> Christina Sorrells</span>
+      <span><i class="sw r"></i> Rebecca Hougland</span>
+      <span style="color:var(--ink-3)">&middot; weeks begin Monday</span>
+    </div>
+    <div id="lensWeek"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h3>Leads Set per Month</h3><span class="meta" id="moMeta"></span></div>
+    <div class="cols" id="teamMonth"></div>
+    <div class="status" id="teamStatus"></div>
+    <div class="statleg">
+      <span><i class="conv"></i>Converted to deal <b id="sConv" style="margin-left:2px"></b></span>
+      <span><i class="open"></i>Still open <b id="sOpen" style="margin-left:2px"></b></span>
+      <span><i class="arch"></i>Archived <b id="sArch" style="margin-left:2px"></b></span>
+    </div>
+    <div id="lensMonth"></div>
+  </div>
+
+  <div class="sec"><span class="oline"></span><h2>By Account Executive</h2><span class="line"></span></div>
+  <div class="secsub">The same two views, one card per rep.</div>
+  <div id="aePanels"></div>
+
+  <div class="note"><div class="mark"></div>
+    <div><b>About the 19 April Bulk Load.</b> Twelve leads were created on a single day, 19 April 2026, all owned by Rebecca. That is a bulk entry, not a day of prospecting, and it flattens every other week on the chart when included. The report excludes it by default. Switch the toggle at the top to see the raw figures.
+    <br><br><b>Where the ARR Comes From.</b> A lead carries no value in Pipedrive, so ARR appears only once the lead has been converted into a deal, and it is that deal&rsquo;s recurring revenue. The Deal Now column says whether that deal is still open, won, or since lost, so a large figure against a lost deal is visible rather than flattering. Two converted leads have deals with no ARR recorded yet and show as not set.
+    <br><br><b>What Counts as a Lead Here.</b> Every row in the Pipedrive leads inbox, counted on its created date and attributed to its owner. Converted leads stay in the count for the period they were set, so this measures activity going in rather than outcomes coming out. Lead value is not tracked, so this report counts leads and does not weight them.</div>
+  </div>
+
+  <div class="tbl-wrap">
+    <div class="tbl-head"><h2>All Leads</h2><span class="count" id="tblCount"></span></div>
+    <table class="data" id="leadTable"><thead><tr>
+      <th>School / Lead</th><th>Owner</th><th>Set</th><th>Week</th><th>Status</th><th>Deal Now</th><th>ARR Generated</th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="foot">ZogoTech Sales Analytics &middot; generated from Pipedrive &middot; 03 Aug 2026</div>
+</div>
+
+<script>
+const LEADS=[
+ {"t": "Coalinga College", "o": "R", "s": "open", "d": "2026-04-19"},
+ {"t": "Rio Salado College (Maricopa)", "o": "R", "s": "arch", "d": "2026-04-19"},
+ {"t": "Northland Pioneer College", "o": "R", "s": "conv", "deal": 198, "arr": 43000, "ds": "open", "d": "2026-04-19"},
+ {"t": "Lane Community College", "o": "R", "s": "open", "d": "2026-04-19"},
+ {"t": "Highland Community College (KS)", "o": "R", "s": "conv", "deal": 219, "arr": 86000, "ds": "open", "d": "2026-04-19"},
+ {"t": "Foundation for California Community Colleges", "o": "R", "s": "conv", "deal": 205, "arr": null, "ds": "lost", "d": "2026-04-19"},
+ {"t": "Eastern Wyoming College", "o": "R", "s": "conv", "deal": 200, "arr": 53500, "ds": "open", "d": "2026-04-19"},
+ {"t": "Eastern Arizona College", "o": "R", "s": "conv", "deal": 207, "arr": 63000, "ds": "open", "d": "2026-04-19"},
+ {"t": "East Arkansas Community College", "o": "R", "s": "open", "d": "2026-04-19"},
+ {"t": "Dona Ana Community College", "o": "R", "s": "arch", "d": "2026-04-19"},
+ {"t": "Cowley County Community College at HLC", "o": "R", "s": "arch", "d": "2026-04-19"},
+ {"t": "Community College Of Denver", "o": "R", "s": "conv", "deal": 209, "arr": 63000, "ds": "open", "d": "2026-04-19"},
+ {"t": "Arapahoe Community College", "o": "R", "s": "arch", "d": "2026-04-19"},
+ {"t": "Blackhawk Technical College lead", "o": "R", "s": "conv", "deal": 199, "arr": 53500, "ds": "lost", "d": "2026-04-22"},
+ {"t": "Ventura College lead", "o": "R", "s": "conv", "deal": 203, "arr": 139000, "ds": "lost", "d": "2026-04-27"},
+ {"t": "Cleveland State Community College", "o": "C", "s": "open", "d": "2026-04-28"},
+ {"t": "Maricopa Community College System Office lead", "o": "R", "s": "open", "d": "2026-04-28"},
+ {"t": "Midwestern State University", "o": "C", "s": "open", "d": "2026-05-11"},
+ {"t": "Missouri Western State University lead", "o": "R", "s": "conv", "deal": 215, "arr": 93000, "ds": "open", "d": "2026-05-12"},
+ {"t": "Technical College Of The Lowcountry", "o": "C", "s": "open", "d": "2026-05-21"},
+ {"t": "Motlow State Community College", "o": "C", "s": "arch", "d": "2026-05-22"},
+ {"t": "Arkansas Northeastern College lead", "o": "R", "s": "conv", "deal": 218, "arr": 14500, "ds": "won", "d": "2026-05-28"},
+ {"t": "Delta State University", "o": "C", "s": "open", "d": "2026-06-03"},
+ {"t": "Kaskaskia College", "o": "C", "s": "open", "d": "2026-06-03"},
+ {"t": "Kansas Association of Community Colleges lead", "o": "R", "s": "conv", "deal": 223, "arr": null, "ds": "open", "d": "2026-06-09"},
+ {"t": "Northwest Arkansas Community College  ZogoTech", "o": "R", "s": "conv", "deal": 222, "arr": 71500, "ds": "open", "d": "2026-06-11"},
+ {"t": "Southwestern Community College (IA) NCCBP Lead", "o": "R", "s": "arch", "d": "2026-06-15"},
+ {"t": "Mott Community College Demo Request post Benchmarking Conference", "o": "R", "s": "conv", "deal": 225, "arr": 93000, "ds": "open", "d": "2026-06-23"},
+ {"t": "Pellissippi State Community College", "o": "C", "s": "open", "d": "2026-07-20"}
+];
+
+const AES=[
+  {k:'C',name:'Christina Sorrells',color:'#123B63',c1:'#1D5488',c2:'#123B63',
+   theme:{fill:'linear-gradient(155deg,#2F6E9E,#123B63)',solid:'#123B63',glow:'rgba(18,59,99,0.5)',
+     fg:'#FFFFFF',fg2:'rgba(255,255,255,0.78)',fgMid:'rgba(255,255,255,0.52)',fg3:'rgba(255,255,255,0.3)',
+     track:'rgba(255,255,255,0.16)',rule:'rgba(255,255,255,0.2)',
+     bar1:'rgba(255,255,255,0.95)',bar2:'rgba(255,255,255,0.55)'}},
+  {k:'R',name:'Rebecca Hougland',color:'#3E9BD6',c1:'#7FB8DE',c2:'#3E9BD6',
+   theme:{fill:'linear-gradient(155deg,#8CC2E6,#3E9BD6)',solid:'#3E9BD6',glow:'rgba(62,155,214,0.5)',
+     fg:'#0B2A40',fg2:'rgba(11,42,64,0.74)',fgMid:'rgba(11,42,64,0.46)',fg3:'rgba(11,42,64,0.26)',
+     track:'rgba(255,255,255,0.42)',rule:'rgba(11,42,64,0.16)',
+     bar1:'#1D5488',bar2:'#0B2A40'}}
+];
+const BULK='2026-04-19';
+const TODAY='2026-08-03';
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const STATUS={conv:'Converted',open:'Open',arch:'Archived'};
+const DEALST={open:'still open',won:'won',lost:'lost'};
+const money=n=>'$'+Math.round(n).toLocaleString('en-US');
+const shortM=n=>n>=1000000?'$'+(n/1000000).toFixed(2).replace(/\.?0+$/,'')+'M':(n>=1000?'$'+Math.round(n/1000)+'k':'$'+Math.round(n));
+// ARR only lands on a lead once it has been converted into a deal
+const arrOf=l=>(l.s==='conv'&&l.arr)?l.arr:0;
+const sumArr=list=>list.reduce((a,l)=>a+arrOf(l),0);
+let includeBulk=false;
+
+const initials=n=>n.split(' ').map(w=>w[0]).join('').slice(0,2);
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const parse=ds=>new Date(ds+'T00:00:00');
+const iso=dt=>dt.toISOString().slice(0,10);
+
+// Monday-start week key
+function weekStart(ds){
+  const dt=parse(ds), day=(dt.getDay()+6)%7;
+  dt.setDate(dt.getDate()-day);
+  return iso(dt);
+}
+const weekLabel=ws=>MONTHS[+ws.slice(5,7)-1]+' '+(+ws.slice(8,10));
+const monthKey=ds=>ds.slice(0,7);
+const monthLabel=mk=>MONTHS[+mk.slice(5,7)-1]+" '"+mk.slice(2,4);
+
+function activeLeads(){
+  return includeBulk?LEADS:LEADS.filter(l=>l.d!==BULK);
+}
+
+// build a contiguous list of period keys covering the data range
+function weekKeys(list){
+  if(!list.length)return[];
+  const ks=list.map(l=>weekStart(l.d)).sort();
+  const out=[];let cur=parse(ks[0]);const end=parse(ks[ks.length-1]);
+  while(cur<=end){out.push(iso(cur));cur.setDate(cur.getDate()+7);}
+  return out;
+}
+function monthKeys(list){
+  if(!list.length)return[];
+  const ks=list.map(l=>monthKey(l.d)).sort();
+  const out=[];let y=+ks[0].slice(0,4),m=+ks[0].slice(5,7);
+  const ey=+ks[ks.length-1].slice(0,4),em=+ks[ks.length-1].slice(5,7);
+  while(y<ey||(y===ey&&m<=em)){out.push(y+'-'+String(m).padStart(2,'0'));m++;if(m>12){m=1;y++;}}
+  return out;
+}
+
+const leadRow=l=>'<div class="cr"><span>'+esc(l.t)+'</span><span class="st '+l.s+'">'+
+  (l.s==='conv'?(l.arr?money(l.arr):'no ARR set'):STATUS[l.s])+'</span></div>';
+
+function tipHTML(items,label,perAE){
+  const a=sumArr(items);
+  let h='<div class="tip"><b>'+label+' &middot; '+items.length+' lead'+(items.length===1?'':'s')+
+    (a?' &middot; '+money(a)+' ARR':'')+'</b>';
+  if(!items.length){h+='<div class="empty">No leads set</div></div>';return h;}
+  if(perAE){
+    AES.forEach(ae=>{
+      const mine=items.filter(l=>l.o===ae.k);
+      if(!mine.length)return;
+      h+='<b>'+ae.name+' &middot; '+mine.length+'</b>';
+      mine.forEach(l=>h+=leadRow(l));
+    });
+  }else{
+    items.forEach(l=>h+=leadRow(l));
+  }
+  return h+'</div>';
+}
+
+function columns(keys,list,keyOf,labelOf,perAE,solo){
+  const max=Math.max(1,...keys.map(k=>list.filter(l=>keyOf(l.d)===k).length));
+  return keys.map(k=>{
+    const items=list.filter(l=>keyOf(l.d)===k);
+    const n=items.length;
+    let segs='';
+    if(solo){
+      if(n)segs='<span class="seg-b solo" style="height:'+(n/max*100)+'%;--sc1:'+solo.c1+';--sc2:'+solo.c2+'"></span>';
+    }else{
+      AES.forEach(ae=>{
+        const c=items.filter(l=>l.o===ae.k).length;
+        if(c)segs+='<span class="seg-b '+ae.k.toLowerCase()+'" style="height:'+(c/max*100)+'%"></span>';
+      });
+    }
+    const peak=n===max&&n>0?' peak':'';
+    return '<div class="col'+peak+'" tabindex="0"><div class="stack">'+segs+tipHTML(items,labelOf(k),perAE)+'</div>'+
+      '<div class="cnum'+(n?'':' zero')+'">'+n+'</div><div class="clab">'+labelOf(k)+'</div></div>';
+  }).join('');
+}
+
+function render(){
+  const list=activeLeads();
+  const bulkN=LEADS.filter(l=>l.d===BULK).length;
+  document.getElementById('stamp').textContent='Pulled 03 Aug 2026 · '+list.length+' leads';
+  document.getElementById('bulkNote').textContent=includeBulk
+    ? bulkN+' leads from 19 Apr are counted in every view below'
+    : bulkN+' leads from 19 Apr are held out of every view below';
+
+  const wk=weekKeys(list), mo=monthKeys(list);
+  const conv=list.filter(l=>l.s==='conv').length;
+  const open=list.filter(l=>l.s==='open').length;
+  const arch=list.filter(l=>l.s==='arch').length;
+  const convPct=list.length?Math.round(conv/list.length*100):0;
+  const perWk=list.length?(list.length/wk.length):0;
+
+  // summary
+  const arrTot=sumArr(list);
+  const arrOpen=sumArr(list.filter(l=>l.ds==='open'));
+  const arrWon=sumArr(list.filter(l=>l.ds==='won'));
+  const arrLost=sumArr(list.filter(l=>l.ds==='lost'));
+  const noArr=list.filter(l=>l.s==='conv'&&!l.arr).length;
+  const cells=[
+    ['Leads Set',list.length,'Across '+wk.length+' weeks','#1D5488','rgba(29,84,136,0.5)'],
+    ['ARR Generated',money(arrTot),conv+' converted leads &middot; '+money(arrOpen)+' still open','#123B63','rgba(18,59,99,0.55)'],
+    ['Converted to Deal',conv+'<small> of '+list.length+'</small>',convPct+'% conversion rate','#2E7D6B','rgba(46,125,107,0.45)'],
+    ['Still Open',open,'Awaiting qualification','#3E9BD6','rgba(62,155,214,0.5)'],
+    ['Pace',perWk.toFixed(1)+'<small>/wk</small>','Team average','#F2872E','rgba(242,135,46,0.5)']
+  ];
+  const cellTip=(head,rows,foot)=>'<div class="tip"><b>'+head+'</b>'+
+    rows.map(r=>'<div class="cr"><span>'+esc(r[0])+'</span><span class="st '+(r[2]||'open')+'">'+r[1]+'</span></div>').join('')+
+    (foot?'<div style="color:rgba(255,255,255,0.62);font-size:10.5px;margin-top:8px;line-height:1.5">'+foot+'</div>':'')+'</div>';
+  const tips=[
+    cellTip('Leads set by month',['04','05','06','07'].map(m=>
+      ['2026-'+m,list.filter(l=>l.d.slice(5,7)===m).length+' leads','open']),
+      'Hover any column below for the schools set in that week or month.'),
+    cellTip('ARR from converted leads',list.filter(l=>l.s==='conv').sort((a,b)=>(b.arr||0)-(a.arr||0))
+      .map(l=>[l.t,l.arr?money(l.arr):'no ARR set',l.ds==='lost'?'arch':(l.ds==='won'?'conv':'open')]),
+      money(arrOpen)+' still open, '+money(arrWon)+' won, '+money(arrLost)+' since lost'+
+      (noArr?'. '+noArr+' converted leads have no ARR set on the deal yet.':'.')),
+    cellTip('Converted to deal',list.filter(l=>l.s==='conv').map(l=>[l.t,l.d,'conv']),
+      'Each of these is now an open, won or lost deal in Pipedrive.'),
+    cellTip('Still open',list.filter(l=>l.s==='open').map(l=>[l.t,l.d,'open']),
+      'Sitting in the leads inbox, not yet qualified into a deal.'),
+    cellTip('Pace by rep',AES.map(ae=>[ae.name,
+      (list.filter(l=>l.o===ae.k).length/wk.length).toFixed(1)+'/wk','open']),
+      'Team pace across '+wk.length+' weeks. Nothing has been set since 20 July.')
+  ];
+  document.getElementById('strip').innerHTML=cells.map((c,i)=>
+    '<div class="cell hoverzone" tabindex="0" style="--fill:'+c[3]+';--glow:'+c[4]+'"><div class="k">'+c[0]+'</div>'+
+    (c[0]==='Converted to Deal'
+      ? '<div class="cellrow">'+gauge(convPct,74,8,{sub:'converted'})+'<div class="v">'+c[1]+'</div></div>'
+      : '<div class="v">'+c[1]+'</div>')+
+    '<div class="cap">'+c[2]+'</div>'+tips[i]+'</div>').join('');
+
+  // team charts
+  document.getElementById('teamWeek').innerHTML=columns(wk,list,weekStart,weekLabel,true);
+  document.getElementById('teamMonth').innerHTML=columns(mo,list,monthKey,monthLabel,true);
+  document.getElementById('wkMeta').textContent=wk.length+' weeks · '+perWk.toFixed(1)+' per week';
+  document.getElementById('moMeta').textContent=mo.length+' months · '+(list.length/mo.length).toFixed(1)+' per month';
+
+  const tot=list.length||1;
+  document.getElementById('teamStatus').innerHTML=
+    '<i class="conv" style="width:'+(conv/tot*100)+'%"></i>'+
+    '<i class="open" style="width:'+(open/tot*100)+'%"></i>'+
+    '<i class="arch" style="width:'+(arch/tot*100)+'%"></i>';
+  document.getElementById('sConv').textContent=conv;
+  document.getElementById('sOpen').textContent=open;
+  document.getElementById('sArch').textContent=arch;
+
+  const ST={conv:'Converted',open:'Open',arch:'Archived'};
+  document.getElementById('lensWeek').innerHTML=lens(
+    ['Week beginning','Leads set','Christina','Rebecca','ARR generated','Schools'],
+    wk.map(k=>{const r=list.filter(l=>weekStart(l.d)===k);
+      return [weekLabel(k),r.length,r.filter(l=>l.o==='C').length,r.filter(l=>l.o==='R').length,
+        sumArr(r)?money(sumArr(r)):'—',r.length?esc(r.map(l=>l.t).join(', ')):'—'];}),
+    'Weeks begin Monday. ARR appears only once a lead has been converted into a deal.');
+  document.getElementById('lensMonth').innerHTML=lens(
+    ['Month','Leads set','Converted','ARR generated','Open','Archived','Conversion'],
+    mo.map(k=>{const r=list.filter(l=>monthKey(l.d)===k);
+      const c=r.filter(l=>l.s==='conv').length;
+      return [monthLabel(k),r.length,c,sumArr(r)?money(sumArr(r)):'—',
+        r.filter(l=>l.s==='open').length,r.filter(l=>l.s==='arch').length,
+        (r.length?Math.round(c/r.length*100):0)+'%'];}),
+    money(arrTot)+' of ARR traced back to leads set in this window. '+
+    (includeBulk?'Including':'Excluding')+' the 12-lead bulk load on 19 April.');
+
+  // per-AE panels
+  document.getElementById('aePanels').innerHTML=AES.map(ae=>{
+    const mine=list.filter(l=>l.o===ae.k);
+    const mc=mine.filter(l=>l.s==='conv').length;
+    const mo_=mine.filter(l=>l.s==='open').length;
+    const ma=mine.filter(l=>l.s==='arch').length;
+    const mt=mine.length||1;
+    const share=list.length?Math.round(mine.length/list.length*100):0;
+    const th=ae.theme;
+    const tv='--pfill:'+th.fill+';--pfill-solid:'+th.solid+';--pglow:'+th.glow+';--pfg:'+th.fg+
+      ';--pfg-2:'+th.fg2+';--pfg-mid:'+th.fgMid+';--pfg-3:'+th.fg3+';--ptrack:'+th.track+
+      ';--prule:'+th.rule+';--pbar1:'+th.bar1+';--pbar2:'+th.bar2;
+    return '<div class="panel ae-panel" style="'+tv+'"><div class="ae-head">'+
+      '<span class="ae-badge">'+initials(ae.name)+'</span>'+
+      '<div><div class="ae-name">'+ae.name+'</div><div class="ae-sub">'+share+'% of team leads set</div></div>'+
+      '<div class="ae-stats">'+
+        '<div class="ae-stat"><div class="n">'+mine.length+'</div><div class="l">Leads set</div></div>'+
+        '<div class="ae-stat"><div class="n">'+mc+'</div><div class="l">Converted</div></div>'+
+        '<div class="ae-stat"><div class="n">'+shortM(sumArr(mine))+'</div><div class="l">ARR generated</div></div>'+
+        '<div class="ae-stat"><div class="n">'+(mine.length?Math.round(mc/mine.length*100):0)+'%</div><div class="l">Conversion</div></div>'+
+      '</div></div>'+
+      '<div class="subhead">Per week</div>'+
+      '<div class="cols">'+columns(wk,mine,weekStart,weekLabel,false,{c1:th.bar1,c2:th.bar2})+'</div>'+
+      '<div class="split"><div class="subhead">Per month</div>'+
+      '<div class="cols">'+columns(mo,mine,monthKey,monthLabel,false,{c1:th.bar1,c2:th.bar2})+'</div></div>'+
+      '<div class="status">'+
+        '<i class="conv" style="width:'+(mc/mt*100)+'%"></i>'+
+        '<i class="open" style="width:'+(mo_/mt*100)+'%"></i>'+
+        '<i class="arch" style="width:'+(ma/mt*100)+'%"></i></div>'+
+      '<div class="statleg"><span><i class="conv"></i>Converted '+mc+'</span>'+
+        '<span><i class="open"></i>Open '+mo_+'</span>'+
+        '<span><i class="arch"></i>Archived '+ma+'</span></div>'+
+      lens(['School / lead','Set','Week','Status','Deal now','ARR'],
+        mine.slice().sort((a,b)=>a.d<b.d?1:-1).map(l=>[esc(l.t),l.d,weekLabel(weekStart(l.d)),ST[l.s],
+          l.ds?DEALST[l.ds]:'—',l.arr?money(l.arr):(l.s==='conv'?'not set':'—')]),
+        ae.name+' set '+mine.length+' of the '+list.length+' team leads, '+mc+' converted, '+
+        money(sumArr(mine))+' of ARR generated.')+
+      '</div>';
+  }).join('');
+
+  // table
+  document.getElementById('tblCount').textContent=list.length+' leads · '+conv+' converted · '+money(arrTot)+' ARR generated';
+  document.querySelector('#leadTable tbody').innerHTML=list.slice().sort((a,b)=>a.d<b.d?1:-1).map(l=>{
+    const ae=AES.find(x=>x.k===l.o);
+    return '<tr><td class="col-name">'+esc(l.t)+'</td>'+
+      '<td><span class="who-pill"><i style="background:'+ae.color+'"></i>'+ae.name.split(' ')[0]+'</span></td>'+
+      '<td class="id">'+l.d+'</td><td class="id">'+weekLabel(weekStart(l.d))+'</td>'+
+      '<td><span class="chip '+l.s+'">'+STATUS[l.s]+'</span></td>'+
+      '<td class="id">'+(l.ds?DEALST[l.ds]:'—')+'</td>'+
+      '<td class="arrcell">'+(l.arr?money(l.arr):(l.s==='conv'?'not set':'—'))+'</td></tr>';
+  }).join('');
+}
+
+const bIn=document.getElementById('bIn'), bEx=document.getElementById('bEx');
+bIn.addEventListener('click',()=>{includeBulk=true;
+  bIn.setAttribute('aria-pressed','true');bEx.setAttribute('aria-pressed','false');render();});
+bEx.addEventListener('click',()=>{includeBulk=false;
+  bEx.setAttribute('aria-pressed','true');bIn.setAttribute('aria-pressed','false');render();});
+render();
+
+/* ---- Data lens ----------------------------------------------------------
+   Every visual on every report can open the exact rows it was drawn from.
+   lens() returns the markup; one delegated listener handles all of them. */
+function lens(cols,rows,note){
+  const id='dl'+(lens._n=(lens._n||0)+1);
+  const cell=(c,i)=>'<td'+(i?' class="n"':'')+'>'+c+'</td>';
+  return '<div class="dl" id="'+id+'">'+
+    '<button class="dl-btn" type="button" data-dl="'+id+'" aria-expanded="false">'+
+      '<span class="dl-ico">+</span><span class="dl-lab">Show the underlying data</span>'+
+      '<span class="dl-cnt">'+rows.length+' row'+(rows.length===1?'':'s')+'</span></button>'+
+    '<div class="dl-body"><table class="dl-tbl"><thead><tr>'+
+      cols.map((c,i)=>'<th'+(i?' class="n"':'')+'>'+c+'</th>').join('')+
+    '</tr></thead><tbody>'+
+      rows.map(r=>'<tr>'+r.map(cell).join('')+'</tr>').join('')+
+    '</tbody></table>'+(note?'<div class="dl-note">'+note+'</div>':'')+'</div></div>';
+}
+document.addEventListener('click',function(e){
+  const b=e.target.closest&&e.target.closest('.dl-btn'); if(!b)return;
+  e.preventDefault();
+  const d=document.getElementById(b.dataset.dl); if(!d)return;
+  const open=d.classList.toggle('open');
+  b.setAttribute('aria-expanded',open?'true':'false');
+  b.querySelector('.dl-ico').textContent=open?'\u2212':'+';
+  b.querySelector('.dl-lab').textContent=open?'Hide the underlying data':'Show the underlying data';
+});
+
+/* ---- ring gauge, shared with the ARR Attainment report ---- */
+function gauge(pct,size,sw,opts){
+  const o=opts||{}, r=(size-sw)/2, c=2*Math.PI*r, cx=size/2;
+  const frac=Math.max(Math.min(pct,100),0)/100;
+  const arc=(col,off,cap)=>'<circle cx="'+cx+'" cy="'+cx+'" r="'+r+'" fill="none" stroke="'+col+
+    '" stroke-width="'+sw+'"'+(cap?' stroke-linecap="round"':'')+
+    ' stroke-dasharray="'+c+'" stroke-dashoffset="'+off+'"/>';
+  return '<span class="rg" style="width:'+size+'px;height:'+size+'px'+
+    (o.txt?';--rgtxt:'+o.txt:'')+'">'+
+    '<svg width="'+size+'" height="'+size+'">'+
+      arc(o.track||'rgba(255,255,255,0.22)',0)+
+      (frac>0?arc(o.color||'#fff',c*(1-frac),true):'')+
+    '</svg><span class="rv" style="font-size:'+(o.fs||Math.round(size*0.26))+'px">'+
+    (o.label!==undefined?o.label:Math.round(pct)+'%')+
+    (o.sub?'<small>'+o.sub+'</small>':'')+'</span></span>';
+}
+</script>
+<script src="/nav.js"></script>
+</body>
+</html>

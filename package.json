@@ -1,0 +1,20 @@
+{
+  "name": "zogotech-sales-intel",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ZogoTech sales reporting with live Pipedrive refresh, IPEDS enrichment and RFP ingestion",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/server.js",
+    "refresh": "node src/jobs/refresh.js",
+    "probe:ipeds": "node scripts/probe-ipeds.js",
+    "auth:google": "node scripts/google-auth.js"
+  },
+  "dependencies": {
+    "csv-parse": "^5.5.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "googleapis": "^140.0.1"
+  }
+}
