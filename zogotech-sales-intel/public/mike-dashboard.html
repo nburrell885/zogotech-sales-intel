@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZogoTech Sales · Executive Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#123B63; --navy-2:#1D5488; --sky:#3E9BD6; --sky-2:#5B93C4;
+    --sky-wash:#E8F2FA; --orange:#F2872E; --orange-deep:#D66A16;
+    --paper:#FBFCFE; --card:#FFFFFF; --ink:#0F2438; --ink-2:#4A6076; --ink-3:#8AA0B4;
+    --rule:#DCE7F1; --rule-2:#EDF3F9; --miss:#C25A3A; --good:#2E7D6B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(1200px 480px at 85% -12%, var(--sky-wash) 0%, transparent 58%),var(--paper);
+    color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:14px;
+    line-height:1.55;padding:40px 22px 72px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto}
+
+  .masthead{margin-bottom:30px}
+  .kicker{display:inline-flex;align-items:center;gap:9px;font-size:10.5px;font-weight:600;
+    letter-spacing:0.16em;text-transform:uppercase;color:var(--navy-2);margin-bottom:13px}
+  .kicker .dot{width:7px;height:7px;border-radius:50%;background:var(--orange);
+    box-shadow:0 0 0 3px rgba(242,135,46,0.18)}
+  h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:42px;line-height:1.04;
+    letter-spacing:-0.02em;color:var(--navy)}
+  .sub{display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-top:14px;
+    padding-top:14px;border-top:2px solid var(--navy)}
+  .sub .lede{font-size:14px;color:var(--ink-2);max-width:62ch}
+  .sub .stamp{margin-left:auto;font-size:11px;color:var(--ink-3);white-space:nowrap;
+    background:var(--sky-wash);padding:5px 11px;border-radius:20px}
+  .toggles{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap}
+  .toggles .tlab{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+  .seg{display:inline-flex;background:var(--paper);border:1px solid var(--rule);border-radius:9px;padding:3px}
+  .seg button{font-family:'Inter';font-size:11px;background:transparent;color:var(--ink-2);
+    border:0;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:600}
+  .seg button[aria-pressed=true]{background:var(--navy);color:#fff}
+  .seg button:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+  .tnote{font-size:11.5px;color:var(--ink-3)}
+
+  .sec{display:flex;align-items:center;gap:11px;margin:40px 0 8px;flex-wrap:wrap}
+  .sec h2{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;
+    letter-spacing:0.02em;text-transform:uppercase;color:var(--navy)}
+  .sec .line{flex:1;height:1px;background:var(--rule);min-width:30px}
+  .sec .badge{font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;
+    padding:4px 10px;border-radius:20px}
+  .badge.live{background:rgba(46,125,107,0.12);color:var(--good)}
+  .badge.report{background:rgba(242,135,46,0.14);color:var(--orange-deep)}
+  .secsub{font-size:12.5px;color:var(--ink-3);margin:0 0 18px;max-width:82ch;line-height:1.55}
+
+  /* three across on desktop, two on tablet, one on phone */
+  /* six tracks: feature cards take three, standard cards take two.
+     Seven cards used to leave a single orphan on the bottom row. */
+  .grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:20px}
+  .grid>.tile{grid-column:span 2;min-width:0}
+  .grid>.tile.wide{grid-column:span 3;min-height:0}
+  .wide .split{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:auto;padding-top:20px}
+  .wide .splab{font-size:9.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+    color:rgba(255,255,255,0.72);margin-bottom:10px}
+  @media(max-width:820px){.wide .split{grid-template-columns:1fr;gap:20px}}
+  @media(max-width:940px){
+    .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .grid>.tile,.grid>.tile.wide{grid-column:span 1}
+    .wide .split{grid-template-columns:1fr 1fr}
+  }
+  @media(max-width:620px){
+    .grid{grid-template-columns:minmax(0,1fr)}
+    .grid>.tile,.grid>.tile.wide{grid-column:span 1}
+  }
+
+  .tile{position:relative;overflow:visible;display:flex;flex-direction:column;
+    text-decoration:none;color:#fff;border-radius:22px;padding:26px 26px 24px;min-height:280px;
+    background:var(--fill,var(--navy));
+    box-shadow:0 18px 40px -22px var(--glow,rgba(18,59,99,0.55));
+    transition:transform .18s cubic-bezier(.2,.7,.3,1),box-shadow .18s}
+  /* the bubble accents, sized to actually read at tile scale */
+  .glow{position:absolute;inset:0;border-radius:22px;overflow:hidden;pointer-events:none;z-index:0}
+  .glow::after{content:'';position:absolute;right:-70px;top:-70px;width:250px;height:250px;
+    border-radius:50%;background:rgba(255,255,255,0.13)}
+  .glow::before{content:'';position:absolute;left:-64px;bottom:-96px;width:210px;height:210px;
+    border-radius:50%;background:rgba(255,255,255,0.075)}
+  .tile>*{position:relative;z-index:1}
+  .tile:hover{transform:translateY(-4px);
+    box-shadow:0 12px 24px -8px rgba(18,59,99,0.22),0 34px 62px -26px var(--glow,rgba(18,59,99,0.65))}
+  .tile:focus-visible{outline:3px solid var(--navy);outline-offset:3px}
+  .tile .top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px}
+  .tile .tlabel{font-size:10.5px;font-weight:700;letter-spacing:0.11em;text-transform:uppercase;
+    color:rgba(255,255,255,0.88);line-height:1.4}
+  .tile .arrow{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,0.18);
+    display:grid;place-items:center;color:#fff;flex:none;font-size:14px;transition:background .16s,color .16s}
+  .tile:hover .arrow{background:#fff;color:var(--navy)}
+  .tile .big{font-family:'Space Grotesk',sans-serif;font-size:42px;font-weight:700;
+    color:#fff;line-height:1;letter-spacing:-0.025em}
+  .tile .big small{font-size:17px;color:rgba(255,255,255,0.66);font-weight:600;margin-left:2px}
+  .tile .cap{font-size:11.5px;color:rgba(255,255,255,0.76);margin-top:11px;line-height:1.5}
+  .tile .viz{margin-top:auto;padding-top:20px}
+
+  /* column sparks */
+  .spark{display:flex;align-items:flex-end;gap:6px;height:56px}
+
+  /* meters: label sits beside the bar, never on top of it */
+  .meters{display:flex;flex-direction:column;gap:9px}
+  .meter{display:grid;grid-template-columns:1fr auto;gap:11px;align-items:center}
+  .meter .bar{height:13px;border-radius:7px;background:rgba(255,255,255,0.2);overflow:hidden}
+  .meter .bar i{display:block;height:100%;border-radius:7px;background:rgba(255,255,255,0.92)}
+  .meter .bar i.soft{background:rgba(255,255,255,0.45)}
+  .meter .ml{font-size:10px;font-weight:600;color:rgba(255,255,255,0.85);white-space:nowrap;
+    letter-spacing:0.02em;min-width:64px;text-align:right}
+  .dots{display:flex;gap:7px;flex-wrap:wrap}
+  .dots .d{display:flex;align-items:center;gap:6px;font-size:10.5px;color:rgba(255,255,255,0.9)}
+  .dots .d i{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+  /* hover detail */
+  .tile .tip{position:absolute;left:18px;right:18px;bottom:18px;z-index:40;
+    background:#0A1F33;color:#fff;border-radius:13px;padding:14px 16px;
+    box-shadow:0 18px 42px -8px rgba(6,20,34,0.68);opacity:0;transform:translateY(6px);
+    pointer-events:none;transition:opacity .15s,transform .15s;font-size:11.5px;text-align:left}
+  .tile:hover .tip,.tile:focus-visible .tip{opacity:1;transform:translateY(0)}
+  .tile .tip b{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:10.5px;
+    color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:8px}
+  .tile .tip .cr{display:flex;justify-content:space-between;gap:14px;padding:2.5px 0;align-items:baseline}
+  .tile .tip .cr span:first-child{color:rgba(255,255,255,0.9)}
+  .tile .tip .cr span:last-child{font-family:'Space Grotesk',sans-serif;font-weight:600;white-space:nowrap}
+  .tile .tip .sm{color:rgba(255,255,255,0.62);font-size:10.5px;margin-top:9px;line-height:1.5}
+
+  .lensblock{background:var(--card);border:1px solid var(--rule);border-radius:16px;
+    padding:8px 22px 18px;margin-bottom:12px;box-shadow:0 1px 2px rgba(18,59,99,0.04)}
+  .lenshead{font-family:'Sora',system-ui,sans-serif;font-size:14px;font-weight:600;
+    color:var(--navy);padding-top:14px}
+  .lensblock .dl{margin-top:10px;border-top:0;padding-top:0}
+
+  /* goals band */
+  .goals{position:relative;overflow:visible;display:grid;gap:26px 40px;
+    grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:start;
+    text-decoration:none;color:#fff;border-radius:22px;padding:28px 30px;
+    background:linear-gradient(140deg,#2F6E9E,#123B63);
+    box-shadow:0 18px 40px -22px rgba(18,59,99,0.6);
+    transition:transform .18s cubic-bezier(.2,.7,.3,1),box-shadow .18s}
+  .goals:hover{transform:translateY(-3px);
+    box-shadow:0 12px 24px -8px rgba(18,59,99,0.24),0 34px 62px -26px rgba(18,59,99,0.7)}
+  .goals:focus-visible{outline:3px solid var(--navy);outline-offset:3px}
+  .goals>*{position:relative;z-index:1}
+  .ghead{grid-column:1 / -1;display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+  .ghead .tlabel{font-size:10.5px;font-weight:700;letter-spacing:0.11em;text-transform:uppercase;
+    color:rgba(255,255,255,0.88)}
+  .gtop{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+  .gbig{font-family:'Space Grotesk',sans-serif;font-size:46px;font-weight:700;line-height:1;
+    letter-spacing:-0.03em}
+  .gbig small{font-size:15px;font-weight:600;color:rgba(255,255,255,0.68);
+    display:block;margin-top:9px;letter-spacing:0}
+  .gbar{display:flex;height:16px;border-radius:9px;overflow:hidden;margin-top:20px;
+    background:rgba(255,255,255,0.2)}
+  .gbar i{display:block;height:100%}
+  .gbar i.cl{background:#fff}
+  .gbar i.wt{background:repeating-linear-gradient(-45deg,rgba(255,255,255,0.66) 0 6px,rgba(255,255,255,0.26) 6px 12px)}
+  .gkey{display:flex;gap:20px;flex-wrap:wrap;margin-top:12px;font-size:11px;
+    color:rgba(255,255,255,0.8);font-weight:500}
+  .gkey span{display:inline-flex;align-items:center;gap:7px}
+  .gkey i{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .grow{display:grid;grid-template-columns:104px minmax(0,1fr) 52px;gap:13px;align-items:center;
+    padding:9px 0;border-top:1px solid rgba(255,255,255,0.16);position:relative;cursor:default}
+  .grow:first-of-type{border-top:0;padding-top:0}
+  .grow .nm{font-size:12.5px;font-weight:600;color:rgba(255,255,255,0.92);white-space:nowrap}
+  .grow .tr{height:12px;border-radius:7px;background:rgba(255,255,255,0.2);overflow:hidden}
+  .grow .tr i{display:block;height:100%;border-radius:7px;background:#fff;transition:background .14s}
+  .grow .pc{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;text-align:right}
+  .grow:hover .tr i,.grow:focus-within .tr i{background:var(--orange)}
+  .gq{grid-column:1 / -1;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+    padding-top:18px;border-top:1px solid rgba(255,255,255,0.18);position:relative;cursor:default}
+  .gq .n{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700}
+  .gq .t{font-size:12.5px;color:rgba(255,255,255,0.82)}
+  .gq .gap{margin-left:auto;font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;
+    color:#F9C48A;white-space:nowrap}
+  @media(max-width:820px){.goals{grid-template-columns:minmax(0,1fr)}.gbig{font-size:42px}}
+
+  .nlist{display:flex;flex-direction:column}
+  .nrow{padding:8px 0;border-top:1px solid rgba(255,255,255,0.16);position:relative;cursor:default}
+  .nrow:first-child{border-top:0;padding-top:0}
+  .nc{display:block;font-size:11px;font-weight:700;letter-spacing:0.03em;
+    color:rgba(255,255,255,0.92);margin-bottom:2px}
+  .nc .lvl{font-style:normal;font-size:8.5px;font-weight:700;letter-spacing:0.06em;
+    text-transform:uppercase;color:rgba(255,255,255,0.55);
+    border:1px solid rgba(255,255,255,0.3);border-radius:4px;padding:1px 5px;margin-left:7px;
+    vertical-align:middle}
+  .nq{display:block;font-size:11.5px;color:rgba(255,255,255,0.72);line-height:1.45;
+    overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .nrow:hover .nq,.nrow:focus-within .nq{color:#fff}
+  .nrow .segtip{left:auto;right:0;transform:translate(0,5px)}
+  .nrow:hover .segtip,.nrow:focus-within .segtip{opacity:1;transform:translate(0,0)}
+  .tile:has(.nrow:hover) .tip{opacity:0}
+
+  .note{display:flex;gap:14px;background:var(--sky-wash);border:1px solid var(--rule);
+    border-radius:16px;padding:18px 22px;font-size:13px;color:var(--ink-2);margin:36px 0 0;line-height:1.6}
+  .note .mark{flex:none;width:4px;border-radius:3px;background:var(--orange)}
+  .note b{color:var(--navy);font-weight:600}
+  .foot{font-size:10.5px;color:var(--ink-3);text-align:center;padding-top:28px}
+  @media(max-width:640px){h1{font-size:30px}.tile{min-height:0;padding:22px}.tile .big{font-size:34px}}
+  @media(prefers-reduced-motion:reduce){.tile{transition:none}}
+
+  /* ---- Display face ----
+     Sora carries the titles: wider apertures and looser fitting than Space Grotesk,
+     which stays on every number so the data keeps the same voice. */
+  h1,h2,h3,
+  .sec h2,.tbl-head h2,.tbl-head h3,.panel-head h3,.ph .nm,
+  .ae-name,.bcard-meta .nm,.cd-meta .t{
+    font-family:'Sora',system-ui,sans-serif}
+  h1{font-weight:700;letter-spacing:-0.008em;line-height:1.12}
+  h1 em{font-weight:700}
+  .sec h2{font-weight:600;letter-spacing:0.09em}
+  .tbl-head h2,.tbl-head h3,.panel-head h3,.ph .nm,.ae-name,.bcard-meta .nm,.cd-meta .t{
+    font-weight:600;letter-spacing:-0.002em}
+
+  /* ---- Data lens: any visual can open the rows behind it ---- */
+  .dl{margin-top:18px;border-top:1px solid var(--rule-2);padding-top:13px}
+  .dl-btn{display:flex;align-items:center;gap:9px;width:100%;font-family:'Inter',sans-serif;
+    font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;
+    color:var(--ink-2);background:transparent;border:0;padding:6px 0;cursor:pointer;text-align:left}
+  .dl-btn:hover{color:var(--navy)}
+  .dl-btn:focus-visible{outline:2px solid var(--sky);outline-offset:3px;border-radius:6px}
+  .dl-ico{width:20px;height:20px;border-radius:6px;background:var(--sky-wash);color:var(--navy-2);
+    display:grid;place-items:center;font-size:14px;font-weight:700;flex:none;line-height:1}
+  .dl-cnt{margin-left:auto;font-weight:500;letter-spacing:0;text-transform:none;
+    font-size:10.5px;color:var(--ink-3)}
+  .dl-body{display:none;margin-top:12px;max-height:360px;overflow:auto;
+    border:1px solid var(--rule);border-radius:12px;background:var(--card)}
+  .dl.open .dl-body{display:block}
+  .dl-tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+  .dl-tbl th{position:sticky;top:0;z-index:2;background:var(--sky-wash);text-align:left;
+    font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3);
+    font-weight:600;padding:9px 13px;white-space:nowrap}
+  .dl-tbl th.n{text-align:right}
+  .dl-tbl td{padding:8px 13px;border-top:1px solid var(--rule-2);color:var(--ink-2)}
+  .dl-tbl td:first-child{color:var(--navy);font-weight:600}
+  .dl-tbl td.n{text-align:right;font-family:'Space Grotesk',sans-serif;font-weight:600;color:var(--ink)}
+  .dl-tbl tbody tr:hover{background:var(--sky-wash)}
+  .dl-note{padding:11px 14px;font-size:11px;color:var(--ink-3);
+    border-top:1px solid var(--rule-2);line-height:1.5}
+  /* on the colour-filled panels the button inverts, the table stays white */
+  .ae-panel .dl{border-top-color:var(--prule)}
+  .ae-panel .dl-btn{color:var(--pfg-2)}
+  .ae-panel .dl-btn:hover{color:var(--pfg)}
+  .ae-panel .dl-ico{background:rgba(255,255,255,0.9);color:#0B2A40}
+  .ae-panel .dl-cnt{color:var(--pfg-3)}
+  .ae-panel .dl-body{border-color:transparent}
+
+  /* ---- segment-level hover: every bar and meter carries its own detail ---- */
+  .spark{display:flex;align-items:stretch;gap:6px;height:76px}
+  .segtip .cr span,.tip .cr span{border-radius:0;min-height:0;background:none;
+    padding:0;height:auto;width:auto}
+  .sp{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;position:relative;cursor:default}
+  .sp .spb{flex:1;min-height:0;display:flex;align-items:flex-end}
+  .sp .spb i{width:100%;display:block;border-radius:4px 4px 0 0;min-height:5px;
+    transition:background .14s;background:rgba(255,255,255,0.86)}
+  .sp b{flex:none;font-size:9px;font-weight:600;text-align:center;color:rgba(255,255,255,0.62);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .14s}
+  .spark.bare{gap:4px;height:64px}
+  .spark.bare .sp .spb i{border-radius:3px 3px 0 0}
+  .sp:hover .spb i,.sp:focus-within .spb i{background:#fff}
+  .sp:hover b,.sp:focus-within b{color:#fff}
+  .meter{position:relative;cursor:default}
+  .meter:hover .bar i,.meter:focus-within .bar i{background:#fff}
+  .dots .d{position:relative;cursor:default}
+  .segtip{position:absolute;left:50%;transform:translate(-50%,5px);bottom:calc(100% + 10px);
+    z-index:70;background:#06182A;color:#fff;border-radius:11px;padding:12px 14px;
+    min-width:206px;max-width:270px;box-shadow:0 16px 38px -8px rgba(4,14,26,0.78);
+    opacity:0;pointer-events:none;transition:opacity .13s,transform .13s;
+    font-size:11px;text-align:left;line-height:1.5;font-weight:400;letter-spacing:0}
+  .sp:hover .segtip,.sp:focus-within .segtip,
+  .meter:hover .segtip,.meter:focus-within .segtip,
+  .dots .d:hover .segtip{opacity:1;transform:translate(-50%,0)}
+  .spark .sp:first-child .segtip{left:0;transform:translate(0,5px)}
+  .spark .sp:first-child:hover .segtip,.spark .sp:first-child:focus-within .segtip{transform:translate(0,0)}
+  .spark .sp:last-child .segtip{left:auto;right:0;transform:translate(0,5px)}
+  .spark .sp:last-child:hover .segtip,.spark .sp:last-child:focus-within .segtip{transform:translate(0,0)}
+  .meter .segtip,.dots .d .segtip{left:0;transform:translate(0,5px)}
+  .meter:hover .segtip,.meter:focus-within .segtip,.dots .d:hover .segtip{transform:translate(0,0)}
+  .segtip b{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:10px;
+    color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.05em;
+    display:block;margin-bottom:7px}
+  .segtip .cr{display:flex;justify-content:space-between;gap:12px;padding:2px 0;align-items:baseline}
+  .segtip .cr span:first-child{color:rgba(255,255,255,0.92)}
+  .segtip .cr span:last-child{font-family:'Space Grotesk',sans-serif;font-weight:600;white-space:nowrap}
+  .segtip .sm{color:rgba(255,255,255,0.6);font-size:10px;margin-top:8px;line-height:1.5}
+  /* the whole-tile panel steps aside while a segment is hovered */
+  .tile:has(.sp:hover) .tip,.tile:has(.meter:hover) .tip,.tile:has(.dots .d:hover) .tip{opacity:0}
+  .grow .segtip,.gq .segtip{left:0;transform:translate(0,5px)}
+  .grow:hover .segtip,.grow:focus-within .segtip,
+  .gq:hover .segtip,.gq:focus-within .segtip{opacity:1;transform:translate(0,0)}
+
+  /* ---- tooltip rows must never overflow their panel ----
+     The label takes the slack and wraps; the figure keeps its width and stays put. */
+  .tip .cr,.segtip .cr{align-items:baseline}
+  .tip .cr>span:first-child,.segtip .cr>span:first-child{
+    flex:1 1 auto;min-width:0;overflow-wrap:anywhere;word-break:normal}
+  .tip .cr>span:last-child,.segtip .cr>span:last-child{
+    flex:0 0 auto;white-space:nowrap;text-align:right}
+  .tip .cr>span:only-child,.segtip .cr>span:only-child{flex:1 1 auto}
+
+  /* ---- ring gauge, matching the ARR Attainment report ---- */
+  .rg{position:relative;flex:none;line-height:0}
+  .rg svg{display:block;transform:rotate(-90deg)}
+  .rg .rv{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:1px;line-height:1;font-family:'Space Grotesk',sans-serif;
+    font-weight:700;color:var(--rgtxt,#fff)}
+  .rg .rv small{font-size:9px;font-weight:600;opacity:0.7;letter-spacing:0.04em;
+    text-transform:uppercase;line-height:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="kicker"><span class="dot"></span> ZogoTech Sales &middot; Executive Dashboard</div>
+    <h1>Sales Performance</h1>
+    <div class="sub">
+      <div class="lede">New business and upsells across both account executives. Every card opens the report behind its number. Hover any card for the colleges.</div>
+      <div class="stamp">Pulled 03 Aug 2026</div>
+    </div>
+    <div class="toggles">
+      <span class="tlab">Cards measure</span>
+      <span class="seg"><button id="mArr" aria-pressed="true">ARR</button><button id="mTcv" aria-pressed="false">TCV</button></span>
+      <span class="tnote" id="metricNote">Showing annual recurring revenue</span>
+    </div>
+  </header>
+
+  <div class="sec"><h2>Goals</h2><span class="badge report">Quota is always ARR</span><span class="line"></span></div>
+  <div class="secsub">Where the team stands against the $1.5M combined quota, and what is left in the quarter. Opens the full attainment report.</div>
+  <a class="goals" href="arr-attainment.html" id="goals"></a>
+
+  <div class="sec"><h2>Revenue Reports</h2><span class="badge report">Built here, not in Pipedrive</span><span class="line"></span></div>
+  <div class="secsub">Pipedrive stores ARR on each deal but totals every list and forecast at contract value, roughly three times larger. Each card opens the report that produces the number on the card.</div>
+  <div class="grid" id="customGrid"></div>
+
+  <div class="sec"><h2>Live in Pipedrive</h2><span class="badge live">Opens in Pipedrive</span><span class="line"></span></div>
+  <div class="secsub">Deal counts, stage membership and lost reasons. Nothing on these three depends on ARR, so Pipedrive reproduces them exactly and these open straight into the app.</div>
+  <div class="grid" id="pdGrid"></div>
+
+  <div class="note">
+    <div class="mark"></div>
+    <div><b>Why the Split.</b> A card reading $2.78M ARR that opened into a Pipedrive view reading $7.83M would look broken to anyone who clicked it. So any card carrying a revenue figure now opens a report page where the headline matches, and each of those pages carries a green link through to the matching Pipedrive list when you want to work the records. Counts and reasons are unambiguous, so those cards still go straight to Pipedrive.
+    <br><br><b>ARR and TCV.</b> Every revenue card defaults to recurring revenue. The toggle switches all of them to total contract value, which folds in multi-year terms and one-time services. Quota and attainment are always ARR, so the attainment card does not move. The stage split came out of the pull in ARR only and is marked accordingly.</div>
+  </div>
+
+  <div class="sec"><h2>The Underlying Data</h2><span class="badge report">Every figure above</span><span class="line"></span></div>
+  <div class="secsub">The rows behind each card, in one place. Each report also carries these tables next to the chart they belong to.</div>
+  <div id="dataLenses"></div>
+
+  <div class="foot">ZogoTech Sales Analytics &middot; generated from Pipedrive &middot; 03 Aug 2026</div>
+</div>
+
+<script>
+const PD='https://app.pipedrive.com';
+const TODAY='2026-08-03';
+const AE={C:'Christina',R:'Rebecca'};
+// latest update per open account. The deal note wins where one exists, otherwise the
+// most recent note on the organisation or its contacts, since most notes hang off the org.
+const NOTES=[
+ {col:'Mott Community College',o:'R',arr:93000,tcv:340975,d:'2026-07-28',lvl:'account',src:'Meeting note',
+  txt:'Touchbase on presidential and board reporting.',
+  more:'A 29-minute discovery call. Nothing is booked on the deal afterwards.'},
+ {col:'Houston City College',o:'C',arr:194000,tcv:250000,d:'2026-07-28',lvl:'deal',src:'Marlon Anderson, HCCS',
+  txt:'If it is not funded through the grant, we will pursue internal funding options.',
+  more:'Confirms intent either way, but the timing hangs on the grant decision. Largest open deal in the book.'},
+ {col:'Northwest Arkansas Community College',o:'R',arr:71500,tcv:264125,d:'2026-07-28',lvl:'account',src:'Meeting note',
+  txt:'ZogoTech touchbase, 17 minutes.',
+  more:'A demo was booked off this call for 7 August at 15:00.'},
+ {col:'Roane State Community College',o:'C',arr:53500,tcv:204500,d:'2026-07-23',lvl:'deal',src:'Demo notes',
+  txt:'SIS, LMS and CRM lack consistent integration, causing unreliable reports.',
+  more:'Data integration gaps are the stated pain, alongside risk concerns about an AI project.'},
+ {col:'Harrisburg Area Community College',o:'C',arr:70000,tcv:110000,d:'2026-07-15',lvl:'deal',src:'Tim Barshinger, HACC',
+  txt:'Still working on it, no updates at present, but we are hoping to hear soon.',
+  more:'Closest expected close in the book at 31 August, and the contract value was cut from $250,000 to $110,000 last week.'},
+ {col:'Vernon College',o:'C',arr:9500,tcv:28500,d:'2026-07-02',lvl:'account',src:'Internal',
+  txt:'AT assigned.',
+  more:'The only note on the account, and the deal still has no expected close date, so it sits outside every quarterly view.'},
+ {col:'County College of Morris',o:'C',arr:71500,tcv:264125,d:'2026-06-26',lvl:'deal',src:'Office of the President',
+  txt:'We are currently working on the state budget. Once that is completed, we will be in touch.',
+  more:'Waiting on the New Jersey state budget, with no date attached. Still carries a 50% probability against a 1 March close.'},
+ {col:'Motlow State Community College',o:'C',arr:53500,tcv:204500,d:'2026-06-23',lvl:'account',src:'Demo held',
+  txt:'ZogoTech demo delivered.',
+  more:'A follow-up meeting is booked for 10 August at 15:00.'},
+ {col:'Southwestern College',o:'R',arr:93000,tcv:250000,d:'2026-06-17',lvl:'account',src:'Demo held',
+  txt:'Pathways Analytics demo delivered.',
+  more:'A check-in task was due 4 August. Lowest probability in the book at 10%.'},
+ {col:'Tallahassee Community College',o:'C',arr:107500,tcv:250000,d:'2026-06-16',lvl:'deal',src:'TCC',
+  txt:'The board approved our budget, but it is grim, so we will not be purchasing new software with general funds.',
+  more:'Looking at Perkins dollars as an alternative. Still carries a 50% probability against a January 2027 close.'},
+ {col:'Missouri Western State University',o:'R',arr:93000,tcv:340975,d:'2026-06-15',lvl:'deal',src:'Demo held',
+  txt:'ZogoTech demo delivered to a group from the university.',
+  more:'Expected close 1 December at 50%. The record was edited this morning.'},
+ {col:'City College of San Francisco',o:'R',arr:93000,tcv:250000,d:'2026-06-15',lvl:'account',src:'Demo held',
+  txt:'Hands-on demo delivered.',
+  more:'Touchbase meeting held 29 July, but nothing is booked after it.'},
+ {col:'Kansas Association of Community Colleges',o:'R',arr:0,tcv:0,d:'2026-06-11',lvl:'account',src:'Meeting note',
+  txt:'Association-level conversation held.',
+  more:'No ARR has ever been set on this deal, so it contributes nothing to the forecast.'},
+ {col:'George C Wallace State CC \u2013 Hanceville',o:'C',arr:71500,tcv:264125,d:'2026-06-09',lvl:'deal',src:'Internal assessment',
+  txt:'The challenge is that they are already a highly successful institution, Aspen Top 10, with record enrollment growth.',
+  more:'An honest internal read on why this one is hard: they may not have the problem the product solves. Probability sits at 20%.'},
+ {col:'Highland Community College (KS)',o:'R',arr:86000,tcv:382625,d:'2026-06-05',lvl:'deal',src:'Title III call, 46 min',
+  txt:'Title III conversation covering the grant timeline.',
+  more:'The Title III award date lands on 30 September, which is what the 1 October close date is built around.'},
+ {col:'Fayetteville Technical Community College',o:'C',arr:93000,tcv:340975,d:'2026-05-28',lvl:'deal',src:'Internal assessment',
+  txt:'May be stalling because the system office is implementing a Banner data warehouse for all NC community colleges.',
+  more:'Banner is promoting a president dashboard alongside it. A competitive threat sitting at the system level rather than the college level, which would affect every North Carolina account.'}
+];
+const NOTED=NOTES.length;
+
+
+// leads excluding the 19 Apr bulk load, with the ARR each conversion went on to generate
+const LEADS=[
+ {m:'Apr',t:'Blackhawk Technical College',o:'R',s:'conv',arr:53500,ds:'lost'},
+ {m:'Apr',t:'Ventura College',o:'R',s:'conv',arr:139000,ds:'lost'},
+ {m:'Apr',t:'Cleveland State Community College',o:'C',s:'open',arr:0},
+ {m:'Apr',t:'Maricopa Community College System Office',o:'R',s:'open',arr:0},
+ {m:'May',t:'Midwestern State University',o:'C',s:'open',arr:0},
+ {m:'May',t:'Missouri Western State University',o:'R',s:'conv',arr:93000,ds:'open'},
+ {m:'May',t:'Technical College of the Lowcountry',o:'C',s:'open',arr:0},
+ {m:'May',t:'Motlow State Community College',o:'C',s:'arch',arr:0},
+ {m:'May',t:'Arkansas Northeastern College',o:'R',s:'conv',arr:14500,ds:'won'},
+ {m:'Jun',t:'Delta State University',o:'C',s:'open',arr:0},
+ {m:'Jun',t:'Kaskaskia College',o:'C',s:'open',arr:0},
+ {m:'Jun',t:'Kansas Association of Community Colleges',o:'R',s:'conv',arr:0,ds:'open'},
+ {m:'Jun',t:'Northwest Arkansas Community College',o:'R',s:'conv',arr:71500,ds:'open'},
+ {m:'Jun',t:'Southwestern Community College (IA)',o:'R',s:'arch',arr:0},
+ {m:'Jun',t:'Mott Community College',o:'R',s:'conv',arr:93000,ds:'open'},
+ {m:'Jul',t:'Pellissippi State Community College',o:'C',s:'open',arr:0}
+];
+const LST={conv:'converted',open:'open',arch:'archived'};
+
+const WON=[
+ {col:"Gaston College",o:'C',arr:71500,tcv:405775,d:'2026-02-12'},
+ {col:"ZT Analytics + Pathways",o:'C',arr:75500,tcv:449625,d:'2026-03-11'},
+ {col:"Cisco College",o:'C',arr:60800,tcv:216193,d:'2026-04-01'},
+ {col:"Panola College",o:'C',arr:57200,tcv:205393,d:'2026-04-01'},
+ {col:"Central Piedmont Community College",o:'C',arr:18000,tcv:36000,d:'2026-06-04'},
+ {col:"Community College of Allegheny County",o:'C',arr:150000,tcv:450000,d:'2026-06-11'},
+ {col:"Arkansas Northeastern College",o:'R',arr:14500,tcv:49125,d:'2026-06-16'},
+ {col:"Chipola College",o:'C',arr:9500,tcv:28500,d:'2026-06-23'},
+ {col:"College of the Albemarle",o:'C',arr:71500,tcv:264125,d:'2026-06-29'},
+ {col:"Johnston Community College",o:'C',arr:5273,tcv:14773,d:'2026-07-15'}
+];
+const OPEN=[
+ {col:"Harrisburg Area Community College",o:'C',arr:70000,tcv:110000,d:'2026-08-31',pr:60},
+ {col:"Salt Lake Community College",o:'R',arr:158500,tcv:553275,d:'2026-08-31',pr:50},
+ {col:"Kansas City Kansas Community College",o:'R',arr:71500,tcv:264125,d:'2026-09-30',pr:80},
+ {col:"City College of San Francisco",o:'R',arr:93000,tcv:340975,d:'2026-09-30',pr:20},
+ {col:"Imperial Valley College",o:'R',arr:93000,tcv:250000,d:'2026-09-30',pr:80},
+ {col:"Highland Community College (KS)",o:'R',arr:86000,tcv:382625,d:'2026-10-01',pr:50},
+ {col:"Morton College",o:'C',arr:71000,tcv:262625,d:'2026-10-12',pr:40},
+ {col:"Fayetteville Technical Community College",o:'C',arr:93000,tcv:340975,d:'2026-11-02',pr:40},
+ {col:"Trident Technical College",o:'C',arr:125500,tcv:363500,d:'2026-11-02',pr:60},
+ {col:"George C Wallace State CC \u2013 Hanceville",o:'C',arr:71500,tcv:264125,d:'2026-11-16',pr:20},
+ {col:"Missouri Western State University",o:'R',arr:93000,tcv:340975,d:'2026-12-01',pr:50},
+ {col:"Motlow State Community College",o:'C',arr:53500,tcv:204500,d:'2026-12-01',pr:40},
+ {col:"Southwestern College",o:'R',arr:93000,tcv:250000,d:'2026-12-31',pr:10},
+ {col:"Los Angeles CCD",o:'R',arr:188000,tcv:500000,d:'2026-12-31',pr:15},
+ {col:"Eastern Arizona College",o:'R',arr:63000,tcv:233000,d:'2026-12-31',pr:30},
+ {col:"Mott Community College",o:'R',arr:93000,tcv:340975,d:'2026-12-31',pr:20},
+ {col:"Houston City College",o:'C',arr:194000,tcv:250000,d:'2027-01-11',pr:40},
+ {col:"Tallahassee Community College",o:'C',arr:107500,tcv:250000,d:'2027-01-11',pr:50},
+ {col:"Northwest College",o:'R',arr:53500,tcv:150000,d:'2027-01-29',pr:30},
+ {col:"County College of Morris",o:'C',arr:71500,tcv:264125,d:'2027-03-01',pr:50},
+ {col:"Northland Pioneer College",o:'R',arr:43000,tcv:150000,d:'2027-03-31',pr:30},
+ {col:"Northwest Arkansas Community College",o:'R',arr:71500,tcv:264125,d:'2027-03-31',pr:50},
+ {col:"Eastern Wyoming College",o:'R',arr:53500,tcv:150000,d:'2027-04-30',pr:20},
+ {col:"Wyoming Community College Commission",o:'R',arr:321000,tcv:1007000,d:'2027-04-30',pr:20},
+ {col:"Community College of Denver",o:'R',arr:63000,tcv:233000,d:'2027-05-28',pr:20},
+ {col:"Rogue Community College",o:'R',arr:63000,tcv:250000,d:'2027-05-31',pr:30},
+ {col:"Joliet Junior College",o:'C',arr:159000,tcv:453500,d:'2027-06-01',pr:50},
+ {col:"Kansas Association of Community Colleges",o:'R',arr:null,tcv:0,d:'2027-06-30',pr:20},
+ {col:"Roane State Community College",o:'C',arr:53500,tcv:204500,d:'2027-07-01',pr:30},
+ {col:"Vernon College",o:'C',arr:9500,tcv:28500,d:null,pr:null}
+];
+const TOUCHED=[
+ {col:"Houston City College",o:'C',arr:194000,tcv:250000,acts:'1 email'},
+ {col:"Mott Community College",o:'R',arr:93000,tcv:340975,acts:'discovery call + call'},
+ {col:"City College of San Francisco",o:'R',arr:93000,tcv:340975,acts:'1 meeting'},
+ {col:"Northwest Arkansas Community College",o:'R',arr:71500,tcv:264125,acts:'1 meeting'},
+ {col:"George C Wallace State CC \u2013 Hanceville",o:'C',arr:71500,tcv:264125,acts:'1 email'}
+];
+const NEWD=[
+ {col:"Northland Pioneer College",o:'R',arr:43000,tcv:78000,d:'2026-04-20',m:'Apr',st:'open'},
+ {col:"Blackhawk Technical College",o:'R',arr:53500,tcv:204500,d:'2026-04-22',m:'Apr',st:'lost'},
+ {col:"Eastern Wyoming College",o:'R',arr:53500,tcv:97500,d:'2026-04-23',m:'Apr',st:'open'},
+ {col:"Northwest College",o:'R',arr:53500,tcv:204500,d:'2026-04-23',m:'Apr',st:'open'},
+ {col:"Ventura College",o:'R',arr:139000,tcv:145975,d:'2026-04-27',m:'Apr',st:'lost'},
+ {col:"Foundation for California Community Colleges",o:'R',arr:0,tcv:0,d:'2026-05-04',m:'May',st:'lost'},
+ {col:"Rogue Community College",o:'R',arr:63000,tcv:244250,d:'2026-05-06',m:'May',st:'open'},
+ {col:"Eastern Arizona College",o:'R',arr:63000,tcv:233000,d:'2026-05-07',m:'May',st:'open'},
+ {col:"Salt Lake Community College",o:'R',arr:158500,tcv:553275,d:'2026-05-12',m:'May',st:'open'},
+ {col:"Community College of Denver",o:'R',arr:63000,tcv:233000,d:'2026-05-13',m:'May',st:'open'},
+ {col:"Wyoming Community College Commission",o:'R',arr:321000,tcv:1007000,d:'2026-05-19',m:'May',st:'open'},
+ {col:"Central Piedmont Community College",o:'C',arr:18000,tcv:36000,d:'2026-05-19',m:'May',st:'won'},
+ {col:"Johnston Community College",o:'C',arr:5273,tcv:14773,d:'2026-05-19',m:'May',st:'won'},
+ {col:"Missouri Western State University",o:'R',arr:93000,tcv:340975,d:'2026-05-26',m:'May',st:'open'},
+ {col:"Roane State Community College",o:'C',arr:53500,tcv:204500,d:'2026-05-29',m:'May',st:'open'},
+ {col:"Arkansas Northeastern College",o:'R',arr:14500,tcv:49125,d:'2026-06-02',m:'Jun',st:'won'},
+ {col:"Highland Community College (KS)",o:'R',arr:86000,tcv:382625,d:'2026-06-05',m:'Jun',st:'open'},
+ {col:"Motlow State Community College",o:'C',arr:53500,tcv:204500,d:'2026-06-05',m:'Jun',st:'open'},
+ {col:"Northwest Arkansas Community College",o:'R',arr:71500,tcv:264125,d:'2026-06-11',m:'Jun',st:'open'},
+ {col:"Kansas Association of Community Colleges",o:'R',arr:0,tcv:0,d:'2026-06-16',m:'Jun',st:'open'},
+ {col:"Vernon College",o:'C',arr:9500,tcv:28500,d:'2026-07-16',m:'Jul',st:'open'},
+ {col:"Mott Community College",o:'R',arr:93000,tcv:340975,d:'2026-07-20',m:'Jul',st:'open'}
+];
+const DST={open:'still open',won:'won',lost:'since lost'};
+const wkStart=ds=>{const t=new Date(ds+'T00:00:00');t.setDate(t.getDate()-((t.getDay()+6)%7));
+  return t.toISOString().slice(0,10);};
+const wkLab=k=>['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+k.slice(5,7)-1]+
+  ' '+(+k.slice(8,10));
+
+const STAGES=[['Qualification',4,659000],['Discovery',3,116500],['Demonstration',9,721500],
+  ['Proposal/Quoting',12,1203500],['Negotiation/Legal',1,70000]];
+const LOST=[['Abandoned',11],['Closed out as the previous rep\u2019s',9],['Competitor',2],
+  ['Budget',2],['Internal issues',1],['Missed RFP criteria',1]];
+
+let metric='arr';
+const mv=d=>(metric==='tcv'?d.tcv:d.arr)||0;
+const money=n=>'$'+Math.round(n).toLocaleString('en-US');
+const big=n=>n>=1000000?'$'+(n/1000000).toFixed(2).replace(/\.?0+$/,'')+'<small>M</small>'
+  :(n>=1000?'$'+Math.round(n/1000)+'<small>K</small>':'$'+Math.round(n));
+const flat=n=>big(n).replace(/<[^>]+>/g,'');
+const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+function tip(head,items,foot,max){
+  const cap=max||6, rows=items.slice(0,cap).map(x=>
+    '<div class="cr"><span>'+esc(x[0])+(x[2]?' <span style="opacity:.6">'+esc(x[2])+'</span>':'')+
+    '</span><span>'+x[1]+'</span></div>').join('');
+  const more=items.length>cap?'<div class="sm">Plus '+(items.length-cap)+' smaller, listed in full under The Underlying Data at the foot of this page.</div>':'';
+  return '<div class="tip"><b>'+head+'</b>'+rows+more+(foot?'<div class="sm">'+foot+'</div>':'')+'</div>';
+}
+const byVal=list=>list.slice().filter(d=>mv(d)).sort((a,b)=>mv(b)-mv(a)).map(d=>[d.col,money(mv(d)),AE[d.o]]);
+
+function quarters(list){
+  const m=new Map();
+  list.forEach(d=>{if(!d.d)return;
+    const k=d.d.slice(0,4)+'-Q'+(Math.floor((+d.d.slice(5,7)-1)/3)+1);
+    m.set(k,(m.get(k)||0)+mv(d));});
+  return [...m.entries()].sort();
+}
+function spark(items,bare){
+  const max=Math.max(...items.map(p=>p[1]),1);
+  return '<div class="spark'+(bare?' bare':'')+'">'+items.map(p=>
+    '<span class="sp" tabindex="0"><span class="spb"><i style="height:'+
+    Math.max(Math.round(p[1]/max*100),6)+'%"></i></span>'+
+    (bare?'':'<b>'+p[0]+'</b>')+(p[2]||'')+'</span>').join('')+'</div>';
+}
+const meters=rows=>'<div class="meters">'+rows.map(r=>
+  '<div class="meter" tabindex="0"><span class="bar"><i class="'+(r[2]||'')+'" style="width:'+
+  Math.max(r[1],3)+'%"></i></span><span class="ml">'+r[0]+'</span>'+(r[3]||'')+'</div>').join('')+'</div>';
+
+function card(t){
+  return '<a class="tile'+(t.wide?' wide':'')+'" href="'+t.url+'"'+(t.blank?' target="_blank" rel="noopener"':'')+
+    ' style="--fill:'+t.fill+';--glow:'+t.glow+'">'+
+    '<span class="glow"></span>'+
+    '<div class="top"><span class="tlabel">'+t.label+'</span><span class="arrow">&#8599;</span></div>'+
+    '<div class="big">'+t.big+'</div><div class="cap">'+t.cap+'</div>'+
+    '<div class="viz">'+t.viz+'</div>'+(t.tip||'')+'</a>';
+}
+
+function build(){
+  const M=metric==='tcv'?'TCV':'ARR';
+  const openTot=OPEN.reduce((s,d)=>s+mv(d),0);
+  const wonTot=WON.reduce((s,d)=>s+mv(d),0);
+  const wt=OPEN.reduce((s,d)=>s+mv(d)*(d.pr||0)/100,0);
+  const wPct=Math.round(wt/openTot*100);
+  const touchTot=TOUCHED.reduce((s,d)=>s+mv(d),0);
+  const qLab=k=>'Q'+k.slice(6)+" '"+k.slice(2,4);
+  document.getElementById('metricNote').textContent=metric==='tcv'
+    ?'Showing total contract value; quota and attainment stay ARR':'Showing annual recurring revenue';
+
+  // ---- new ARR generated, by month and by week ----
+  const bucket=(keyOf,keys)=>keys.map(k=>[k,NEWD.filter(d=>keyOf(d)===k).reduce((a,d)=>a+mv(d),0),
+    NEWD.filter(d=>keyOf(d)===k)]);
+  // carry both series to the pull date so a dry spell shows as empty rather than absent
+  const SERIES_END='2026-08-03';
+  const months=bucket(d=>d.m,['Apr','May','Jun','Jul','Aug']);
+  const wkeys=(function(){const ks=NEWD.map(d=>wkStart(d.d)).sort();const out=[];
+    let c=new Date(ks[0]+'T00:00:00');const e=new Date(wkStart(SERIES_END)+'T00:00:00');
+    while(c<=e){out.push(c.toISOString().slice(0,10));c.setDate(c.getDate()+7);}return out;})();
+  const weeks=bucket(d=>wkStart(d.d),wkeys);
+  const newArrTot=NEWD.reduce((a,d)=>a+mv(d),0);
+  const bestWk=weeks.slice().sort((a,b)=>b[1]-a[1])[0];
+  const dryWks=weeks.filter(w=>!w[1]).length;
+
+  const LEADSCARD={label:'Leads Set by AE',url:'leads-by-ae.html',wide:true,big:'16<small> leads</small>',
+     cap:'Weekly and monthly, team then per-AE &middot; 13 converted leads have generated $773,000 of ARR',
+     fill:'linear-gradient(155deg,#6FA6D0,#3E6E95)',glow:'rgba(91,147,196,0.5)',
+     viz:spark([["Apr",4],["May",5],["Jun",6],["Jul",1]]),
+     tip:tip('Leads set by month',[['April 2026','4 leads'],['May 2026','5 leads'],
+       ['June 2026','6 leads'],['July 2026','1 lead']],
+       'Excludes the 12-lead bulk load on 19 Apr. Christina 7, Rebecca 9. Nothing set since 20 July.')};
+
+  const wideCard=
+    '<a class="tile wide" href="arr-pipeline.html#new" style="--fill:linear-gradient(140deg,#2F6E9E,#123B63);--glow:rgba(18,59,99,0.55)">'+
+      '<div class="top"><span class="tlabel">New '+M+' Generated</span><span class="arrow">&#8599;</span></div>'+
+      '<div class="big">'+big(newArrTot)+'</div>'+
+      '<div class="cap">'+NEWD.length+' deals created between 20 Apr and 20 Jul &middot; counted on the day the deal was opened, '+
+        'whatever became of it since &middot; best week '+flat(bestWk[1])+', '+dryWks+' weeks with nothing</div>'+
+      '<div class="split">'+
+        '<div><div class="splab">By month</div>'+spark(months.map(m=>[m[0],m[1],
+          segTip(m[0]+' 2026 &middot; '+(m[1]?money(m[1]):'nothing generated'),
+            m[2].length?m[2].slice().sort((a,b)=>mv(b)-mv(a)).map(d=>[d.col,mv(d)?money(mv(d)):'not set',
+              AE[d.o]+', '+DST[d.st]]):[['No deals created','&mdash;']],
+            m[2].length?m[2].length+' deals created':'Not a single deal was opened this month.')]))+'</div>'+
+        '<div><div class="splab">By week &middot; 20 Apr to 3 Aug</div>'+spark(weeks.map(w=>[wkLab(w[0]),w[1],
+          segTip('Week of '+wkLab(w[0])+' &middot; '+(w[1]?money(w[1]):'nothing'),
+            w[2].length?w[2].slice().sort((a,b)=>mv(b)-mv(a)).map(d=>[d.col,mv(d)?money(mv(d)):'not set',
+              AE[d.o]]):[['No deals created','&mdash;']],
+            w[1]?w[2].length+' deal'+(w[2].length===1?'':'s')+' opened this week':'A quiet week')]),true)+'</div>'+
+      '</div>'+
+      tip('New '+M+' by month',months.map(m=>[m[0]+' 2026',m[1]?money(m[1]):'nothing',
+        m[2].length+' deals']),
+        'Largest single deal is Wyoming Community College Commission at '+
+        money(Math.max.apply(null,NEWD.map(mv)))+'. May carried more than half the quarter&rsquo;s new revenue.')+
+    '</a>'+
+    card(Object.assign({},LEADSCARD,{viz:'<div class="split">'+
+      '<div><div class="splab">Leads set by month</div>'+
+        spark(['Apr','May','Jun','Jul'].map(m=>{const r=LEADS.filter(l=>l.m===m);
+          const a=r.reduce((x,l)=>x+l.arr,0);
+          return [m,r.length,segTip(m+' 2026 &middot; '+r.length+' leads'+(a?' &middot; '+money(a):''),
+            r.map(l=>[l.t,l.s==='conv'?(l.arr?money(l.arr):'no ARR set'):LST[l.s],AE[l.o]]),
+            a?money(a)+' of ARR traced to this month':'Nothing from this month converted yet')];}))+'</div>'+
+      '<div><div class="splab">ARR still open</div>'+
+        meters([['$257.5k of $464.5k',55,'',
+          segTip('ARR from converted leads &middot; $464,500',
+            LEADS.filter(l=>l.s==='conv').sort((a,b)=>b.arr-a.arr)
+              .map(l=>[l.t,l.arr?money(l.arr):'no ARR set',l.ds||'']),
+            '$257,500 still open, $14,500 won, $192,500 since lost. 7 of 16 leads converted, all of them Rebecca&rsquo;s.')]])+
+      '</div></div>'}));
+
+
+  const custom=[
+    {label:'ARR Attainment by AE',url:'arr-attainment.html',big:'36<small>%</small>',
+     cap:'$533,773 booked against $1.5M combined quota &middot; always ARR, the toggle does not move this',
+     fill:'linear-gradient(155deg,#2F6E9E,#123B63)',glow:'rgba(18,59,99,0.55)',
+     viz:spark([1,2,3,4].map(q=>{const r=WON.filter(d=>Math.floor((+d.d.slice(5,7)-1)/3)+1===q);
+       const a=r.reduce((x,d)=>x+(d.arr||0),0);
+       return ['Q'+q,a,segTip('Q'+q+' 2026 &middot; '+(a?money(a):'nothing closed'),
+         r.length?r.map(d=>[d.col,money(d.arr),AE[d.o]]):[['Nothing closed yet','&mdash;']],
+         'Quarterly quota is $250,000 for Q2 and Q3, $125,000 for Q1 and Q4.')];})),
+     tip:tip('Closed ARR by quarter',[['Q1 2026','$147,000','2 colleges'],['Q2 2026','$381,500','7 colleges'],
+       ['Q3 2026','$5,273','Johnston'],['Q4 2026','—','not yet']],
+       'Christina at 69% of her annual quota with Q1 and Q2 both past 100%. Rebecca at 2%. 58 days left in Q3.')},
+    {label:'Open Pipeline',url:'arr-pipeline.html#open',big:big(openTot),
+     cap:OPEN.length+' open deals &middot; '+M+' &middot; bars are '+M+' by expected close quarter',
+     fill:'linear-gradient(155deg,#2E7CB8,#1D5488)',glow:'rgba(29,84,136,0.5)',
+     viz:spark(quarters(OPEN).map(p=>{const r=OPEN.filter(d=>d.d&&
+       d.d.slice(0,4)+'-Q'+(Math.floor((+d.d.slice(5,7)-1)/3)+1)===p[0]);
+       return [qLab(p[0]),p[1],segTip(qLab(p[0])+' &middot; '+money(p[1]),
+         r.slice().sort((a,b)=>mv(b)-mv(a)).map(d=>[d.col,money(mv(d)),d.pr+'%']),
+         r.length+' deals &middot; '+money(r.reduce((x,d)=>x+mv(d)*(d.pr||0)/100,0))+' weighted')];})),
+     tip:tip('Largest open deals',byVal(OPEN),
+       'Pipedrive totals this same list at '+flat(OPEN.reduce((s,d)=>s+(d.tcv||0),0))+' contract value.')},
+    {label:'Weighted Forecast',url:'arr-pipeline.html#forecast',big:big(wt),
+     cap:'Open '+M+' &times; each deal&rsquo;s win probability &middot; all close dates &middot; '+wPct+'% of open',
+     fill:'linear-gradient(155deg,#5FAEE0,#3E9BD6)',glow:'rgba(62,155,214,0.5)',
+     viz:meters([[flat(wt)+' weighted',wPct,'',
+       segTip('Weighted &middot; '+money(wt),
+         OPEN.filter(d=>mv(d)&&d.pr).sort((a,b)=>mv(b)*b.pr-mv(a)*a.pr)
+           .map(d=>[d.col,money(mv(d)*d.pr/100),d.pr+'%']),
+         wPct+'% of open '+M+'. Probabilities come straight off each deal.')],
+      [flat(openTot)+' open',100,'soft',
+       segTip('Open at full value &middot; '+money(openTot),byVal(OPEN),
+         OPEN.length+' open deals before any probability is applied.')]]),
+     tip:tip('Biggest weighted contributors',
+       OPEN.slice().filter(d=>mv(d)&&d.pr).sort((a,b)=>mv(b)*b.pr-mv(a)*a.pr)
+         .map(d=>[d.col,money(mv(d)*d.pr/100),d.pr+'%']),
+       'Each deal at '+M+' times its probability. Pipedrive weights the same deals at contract value.')},
+    {label:'Deals Won',url:'arr-pipeline.html#won',big:big(wonTot),
+     cap:WON.length+' won this year &middot; '+M+' &middot; bars are '+M+' by close quarter',
+     fill:'linear-gradient(155deg,#3A9382,#2E7D6B)',glow:'rgba(46,125,107,0.5)',
+     viz:spark(quarters(WON).map(p=>{const r=WON.filter(d=>
+       d.d.slice(0,4)+'-Q'+(Math.floor((+d.d.slice(5,7)-1)/3)+1)===p[0]);
+       return [qLab(p[0]),p[1],segTip(qLab(p[0])+' &middot; '+money(p[1]),
+         r.slice().sort((a,b)=>mv(b)-mv(a)).map(d=>[d.col,money(mv(d)),AE[d.o]]),
+         r.length+' deal'+(r.length===1?'':'s')+' closed')];})),
+     tip:tip('Won this year',byVal(WON),
+       'Nine of the ten are Christina&rsquo;s. Pipedrive shows the same ten at $2.12M contract value.')},
+    {label:'ARR Touched Last Week',url:'arr-touched.html',big:big(touchTot),
+     cap:'5 open deals worked &middot; 9 meaningful activities &middot; 27 Jul to 2 Aug',
+     fill:'linear-gradient(155deg,#4FA894,#215A4D)',glow:'rgba(46,125,107,0.5)',
+     viz:meters([[flat(touchTot)+' of '+flat(openTot),Math.round(touchTot/openTot*100),'',
+       segTip('Worked 27 Jul to 2 Aug &middot; '+money(touchTot),
+         TOUCHED.map(d=>[d.col,money(mv(d)),d.acts]),
+         Math.round(touchTot/openTot*100)+'% of open '+M+
+         ' was touched. Mott and City College of San Francisco have nothing booked afterwards.')]]),
+     tip:tip(M+' touched, 27 Jul to 2 Aug',TOUCHED.map(d=>[d.col,money(mv(d)),d.acts]),
+       'Hand-logged calls, meetings, discovery calls, emails and tasks. Marketing automation excluded. Each deal counted once.')},
+    {label:'Next Four Weeks',url:'sales-dashboard.html',big:'19<small> booked</small>',
+     cap:'Calendar of everything scheduled 3 to 30 Aug &middot; 8 open deals have nothing booked at all',
+     fill:'linear-gradient(155deg,#4A82AC,#1D5488)',glow:'rgba(29,84,136,0.5)',
+     viz:spark([['Wk 1',10,segTip('3 to 9 Aug &middot; 10 items',
+         [['Houston City College','call'],['Trident Technical College','task'],
+          ['Tallahassee Community College','task'],['Morton College','meeting 15:00'],
+          ['Southwestern College','task'],['Wallace State Hanceville','call'],
+          ['Northwest Arkansas CC','demo 15:00']],'Six of them fall on Monday alone.')],
+       ['Wk 2',6,segTip('10 to 16 Aug &middot; 6 items',
+         [['Motlow State CC','meeting 15:00'],['Imperial Valley College','call'],
+          ['Salt Lake Community College','RFP scoring'],['Eastern Wyoming College','task'],
+          ['Community College of Denver','deadline'],['Ventura College','on a lost deal']],
+         'Salt Lake proposal scoring lands on 10 Aug.')],
+       ['Wk 3',1,segTip('17 to 23 Aug &middot; 1 item',
+         [['Kansas City Kansas CC','check-in 15:00']],'A very light week.')],
+       ['Wk 4',2,segTip('24 to 30 Aug &middot; 2 items',
+         [['Eastern Arizona College','demo'],['Northwest College','task 18:15']],
+         'Northland Pioneer follows on 31 Aug.')]]),
+     tip:tip('Booked by week',[['3 to 9 Aug','10 items','6 due Monday'],['10 to 16 Aug','6 items','SLCC scoring'],
+       ['17 to 23 Aug','1 item','KCKCC check-in'],['24 to 30 Aug','2 items','Eastern Arizona demo']],
+       'Live conversations: a Morton College meeting on 4 Aug, the NWACC demo on 7 Aug, and Motlow on 10 Aug. Everything else is a task or a deadline.')},
+  ];
+
+  const notesCard=card({wide:true,label:'Open Accounts &middot; Latest Note',url:PD+'/pipeline/2',blank:true,
+    big:NOTED+'<small> of '+OPEN.length+'</small>',
+    cap:'Open accounts with a written update &middot; the deal note where there is one, otherwise the most recent note on the account &middot; 9 deal-level, 7 account-level',
+    fill:'linear-gradient(140deg,#4A82AC,#1D5488)',glow:'rgba(29,84,136,0.5)',
+    viz:'<div class="split">'+
+      '<div><div class="splab">Notes on file</div>'+
+        meters([[NOTED+' of '+OPEN.length+' accounts',Math.round(NOTED/OPEN.length*100),'',
+          segTip('Most recent note by account',
+            NOTES.map(n=>[n.col,money(mv(n)),n.d.slice(8)+' '+
+              ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+n.d.slice(5,7)-1]]),
+            'The other '+(OPEN.length-NOTED)+' open accounts have nothing written against them anywhere, '+
+            'including Wyoming CCC at $321,000 and Los Angeles CCD at $188,000.')]])+
+      '</div>'+
+      '<div><div class="splab">Most recent</div><div class="nlist">'+
+        NOTES.slice(0,4).map(n=>
+          '<div class="nrow" tabindex="0"><span class="nc">'+esc(n.col)+
+          '<i class="lvl">'+n.lvl+'</i></span>'+
+          '<span class="nq">'+n.txt+'</span>'+
+          segTip(n.col+' &middot; '+money(mv(n)),
+            [['Note added',n.d],['Attached to',n.lvl],['Source',n.src],['Owner',AE[n.o]]],
+            '&ldquo;'+n.txt+'&rdquo; '+n.more)+'</div>').join('')+
+      '</div></div></div>',
+    tip:tip('Latest note by account',NOTES.map(n=>[n.col,money(mv(n)),n.d]),
+      'Most notes sit on the account rather than the deal, so this rolls up all three. Read Fayetteville and Tallahassee first.')});
+
+  const live=[
+    {label:'Pipeline by Stage',url:PD+'/pipeline/2',blank:true,big:'29<small> deals</small>',
+     cap:'Deal counts match Pipedrive exactly &middot; '+money(STAGES.reduce((a,x)=>a+x[2],0))+' of open ARR spread across five stages',
+     fill:'linear-gradient(155deg,#1D5488,#0F3255)',glow:'rgba(18,59,99,0.55)',
+     viz:meters(STAGES.map(s=>[s[1]+' '+s[0].split('/')[0],Math.max(s[1]/12*100,8),'',
+       segTip(s[0]+' &middot; '+s[1]+' deals',
+         [['Open ARR',money(s[2])],['Share of open ARR',
+           Math.round(s[2]/STAGES.reduce((a,x)=>a+x[2],0)*100)+'%'],
+          ['Average per deal',money(s[2]/s[1])]],
+         'Deal counts match Pipedrive exactly. The ARR total does not, because Pipedrive sums the stage at contract value.')])),
+     tip:tip('Open deals by stage',STAGES.map(s=>[s[0],s[1]+' deals',money(s[2])+' ARR']),
+       'Half the open ARR sits in Proposal/Quoting. Only one deal has reached Negotiation, which is thin this late in the year.')},
+    {label:'Deals Lost',url:PD+'/deals?status=lost',blank:true,big:'26<small> lost</small>',
+     cap:'22 of 26 came in through the March CRM import &middot; measured from deal creation, 3 of the 23 made since the migration are won and 16 are still open',
+     fill:'linear-gradient(155deg,#F49A4C,#E07A1C)',glow:'rgba(242,135,46,0.5)',
+     viz:'<div class="dots">'+LOST.map((x,i)=>'<span class="d" tabindex="0"><i style="background:rgba(255,255,255,'+
+       (0.92-i*0.16).toFixed(2)+')"></i>'+x[0]+' '+x[1]+
+       segTip(x[0]+' &middot; '+x[1]+' deals',
+         [['Share of losses',Math.round(x[1]/26*100)+'%'],
+          ['Mostly imported records',(x[0]==='Abandoned'||x[0].indexOf('previous rep')>-1)?'yes':'no']],
+         (x[0]==='Abandoned'||x[0].indexOf('previous rep')>-1)
+           ?'Nearly all of these came in through the March import rather than being worked and lost by this team.'
+           :'A deal this team worked and lost on its merits.')+'</span>').join('')+'</div>',
+     tip:tip('Lost reasons',LOST.map(x=>[x[0],x[1]+' deals',Math.round(x[1]/26*100)+'%']),
+       'Only four losses were competitive or budget-driven. Reason grouping is native to Pipedrive, so this card goes straight there.')},
+    {label:'New Deals Created',url:PD+'/deals',blank:true,big:NEWD.length+'<small> deals</small>',
+     cap:'Deal counts match Pipedrive exactly &middot; 20 Apr to 20 Jul &middot; '+flat(newArrTot)+' of '+M+' behind them',
+     fill:'linear-gradient(155deg,#7FB8DE,#4A82AC)',glow:'rgba(91,147,196,0.5)',
+     viz:spark(months.map(m=>[m[0],m[2].length,
+       segTip(m[0]+' 2026 &middot; '+m[2].length+' deals created',
+         m[2].length?m[2].map(d=>[d.col,d.d,AE[d.o]]):[['No deals created','&mdash;']],
+         m[2].length?money(m[1])+' of '+M+' generated &middot; '+
+           m[2].filter(d=>d.st==='open').length+' still open'
+         :'Nothing opened yet this month. The series runs to the 3 Aug pull date.')])),
+     tip:tip('Deals created by month',months.map(m=>[m[0]+' 2026',m[2].length+' deals',
+       m[2].filter(d=>d.o==='C').length+'C / '+m[2].filter(d=>d.o==='R').length+'R']),
+       'Rebecca created 17 of the 22. Three have since been lost and three won.')}
+  ];
+
+  // ---- goals band ----
+  (function(){
+    const Q={C:[125000,250000,250000,125000],R:[125000,250000,250000,125000]};
+    const yrQuota=o=>Q[o].reduce((a,b)=>a+b,0);
+    const totQuota=yrQuota('C')+yrQuota('R');
+    const closedBy=o=>WON.filter(d=>d.o===o).reduce((a,d)=>a+(d.arr||0),0);
+    const closed=closedBy('C')+closedBy('R');
+    const wt26=OPEN.reduce((a,d)=>a+((d.d&&d.d.slice(0,4)==='2026')?(d.arr||0)*(d.pr||0)/100:0),0);
+    const fc=closed+wt26;
+    const pct=Math.round(closed/totQuota*100), fpct=Math.round(fc/totQuota*100);
+    const clW=Math.min(closed/totQuota*100,100), wtW=Math.min(wt26/totQuota*100,100-clW);
+
+    const t=new Date(TODAY+'T00:00:00'), qn=Math.floor(t.getMonth()/3)+1, y=t.getFullYear();
+    const qEnd=new Date(y,qn*3,0);
+    const daysLeft=Math.max(Math.round((qEnd-t)/86400000),0);
+    const qQuota=Q.C[qn-1]+Q.R[qn-1];
+    const qClosed=WON.filter(d=>+d.d.slice(0,4)===y&&Math.floor((+d.d.slice(5,7)-1)/3)+1===qn)
+      .reduce((a,d)=>a+(d.arr||0),0);
+    const qGap=Math.max(qQuota-qClosed,0);
+
+    const repRow=o=>{
+      const c=closedBy(o), q=yrQuota(o), p=Math.round(c/q*100);
+      const mine=WON.filter(d=>d.o===o).sort((a,b)=>(b.arr||0)-(a.arr||0));
+      const full={C:'Christina Sorrells',R:'Rebecca Hougland'};
+      return '<div class="grow" tabindex="0"><span class="nm">'+full[o]+'</span>'+
+        '<span class="tr"><i style="width:'+Math.min(p,100)+'%"></i></span>'+
+        '<span class="pc">'+p+'%</span>'+
+        segTip(full[o]+' &middot; '+p+'% of '+money(q),
+          mine.length?mine.map(d=>[d.col,money(d.arr),qLab(d.d.slice(0,4)+'-Q'+
+            (Math.floor((+d.d.slice(5,7)-1)/3)+1))]):[['Nothing closed yet','&mdash;']],
+          money(c)+' closed against a '+money(q)+' annual quota. '+
+          (q-c>0?money(q-c)+' still to sign this year.':'Quota met.'))+'</div>';
+    };
+
+    document.getElementById('goals').innerHTML=
+      '<span class="glow"></span>'+
+      '<div class="ghead"><span class="tlabel">ARR Attainment &middot; both account executives</span>'+
+        '<span class="arrow">&#8599;</span></div>'+
+      '<div class="gtop">'+gauge(pct,104,10,{sub:'closed'})+
+        '<div><div class="gbig">'+pct+'%<small>of the '+money(totQuota)+' combined quota, closed to date</small></div></div></div>'+
+        '<div class="gbar"><i class="cl" style="width:'+clW+'%"></i><i class="wt" style="width:'+wtW+'%"></i></div>'+
+        '<div class="gkey"><span><i style="background:#fff"></i>Closed '+money(closed)+'</span>'+
+          '<span><i style="background:rgba(255,255,255,0.5)"></i>Weighted forecast '+money(fc)+' ('+fpct+'%)</span>'+
+        '</div></div>'+
+      '<div>'+repRow('C')+repRow('R')+'</div>'+
+      '<div class="gq" tabindex="0"><span class="n">'+daysLeft+'</span>'+
+        '<span class="t">days left in Q'+qn+' '+y+'</span>'+
+        '<span class="gap">'+money(qGap)+' still to sign</span>'+
+        segTip('Q'+qn+' '+y,
+          [['Quarterly quota',money(qQuota)],['Closed so far',money(qClosed)],
+           ['Still to sign',money(qGap)],['Days remaining',daysLeft]],
+          'Remaining counts closed business only, never weighted pipeline, so this is what still has to be signed.')+
+      '</div>';
+  })();
+
+  document.getElementById('customGrid').innerHTML=wideCard+custom.map(card).join('');
+  document.getElementById('pdGrid').innerHTML=notesCard+live.map(card).join('');
+
+  // ---- the rows behind every card ----
+  const qLabel=k=>'Q'+k.slice(6)+" '"+k.slice(2,4);
+  const block=(title,html)=>'<div class="lensblock"><div class="lenshead">'+title+'</div>'+html+'</div>';
+  document.getElementById('dataLenses').innerHTML=
+    block('Open pipeline &middot; '+flat(openTot)+' '+M,
+      lens(['College','AE','Close','Quarter','Prob',M,'Weighted'],
+        OPEN.slice().sort((a,b)=>(a.d||'9')<(b.d||'9')?-1:1).map(d=>[esc(d.col),AE[d.o],
+          d.d||'—',d.d?qLabel(d.d.slice(0,4)+'-Q'+(Math.floor((+d.d.slice(5,7)-1)/3)+1)):'—',
+          d.pr==null?'—':d.pr+'%',mv(d)?money(mv(d)):'—',
+          mv(d)?money(mv(d)*(d.pr||0)/100):'—']),
+        'Weighted total '+flat(wt)+', which is '+wPct+'% of open. Full report at Pipeline Health in ARR.'))+
+    block('Deals won &middot; '+flat(wonTot)+' '+M,
+      lens(['College','AE','Won',M],
+        WON.slice().sort((a,b)=>a.d<b.d?-1:1).map(d=>[esc(d.col),AE[d.o],d.d,money(mv(d))]),
+        'Nine of the ten are Christina&rsquo;s. Quota is measured in ARR regardless of the toggle.'))+
+    block('ARR touched last week &middot; '+flat(touchTot),
+      lens(['College','AE','Activities',M],
+        TOUCHED.map(d=>[esc(d.col),AE[d.o],d.acts,money(mv(d))]),
+        'Nine hand-logged activities across five deals, 27 July to 2 August. Each deal counted once. Two of the five have no next step booked: Mott and City College of San Francisco.'))+
+    block('New '+M+' generated &middot; '+flat(newArrTot)+' across '+NEWD.length+' deals',
+      lens(['College','AE','Created','Week',M,'Deal now'],
+        NEWD.slice().sort((a,b)=>a.d<b.d?1:-1).map(d=>[esc(d.col),AE[d.o],d.d,wkLab(wkStart(d.d)),
+          mv(d)?money(mv(d)):'not set',DST[d.st]]),
+        'Counted on the day each deal was created. Deals since won or lost still count, because the revenue was generated then.'))+
+    block('New '+M+' by week',
+      lens(['Week beginning','Deals created',M,'Schools'],
+        weeks.map(w=>[wkLab(w[0]),w[2].length,w[1]?money(w[1]):'—',
+          w[2].length?esc(w[2].map(d=>d.col).join(', ')):'nothing created']),
+        'Best week '+flat(bestWk[1])+' beginning '+wkLab(bestWk[0])+'. '+dryWks+' weeks produced nothing at all.'))+
+    block('Open pipeline by stage &middot; 29 deals',
+      lens(['Stage','Deals','Open ARR','Share'],
+        STAGES.map(x=>[x[0],x[1],money(x[2]),Math.round(x[2]/STAGES.reduce((a,y)=>a+y[2],0)*100)+'%']),
+        'Stage totals came out of the pull in ARR only, so this table does not follow the toggle.'))+
+    block('Deals lost &middot; 26 closed out',
+      lens(['Reason','Deals','Share of losses'],
+        LOST.map(x=>[x[0],x[1],Math.round(x[1]/26*100)+'%']),
+        '22 of the 26 entered Pipedrive through the March import. Only 4 were deals this team created and lost: '+
+        'the FoundationCCC RFP, Ventura College, Blackhawk Technical and North Shore. Measured from deal creation, '+
+        'the cohort made since the migration is 23 deals: 3 won, 4 lost, 16 still open.'));
+}
+
+const mArr=document.getElementById('mArr'), mTcv=document.getElementById('mTcv');
+mArr.addEventListener('click',()=>{metric='arr';
+  mArr.setAttribute('aria-pressed','true');mTcv.setAttribute('aria-pressed','false');build();});
+mTcv.addEventListener('click',()=>{metric='tcv';
+  mTcv.setAttribute('aria-pressed','true');mArr.setAttribute('aria-pressed','false');build();});
+build();
+
+/* ---- Data lens ----------------------------------------------------------
+   Every visual on every report can open the exact rows it was drawn from.
+   lens() returns the markup; one delegated listener handles all of them. */
+function lens(cols,rows,note){
+  const id='dl'+(lens._n=(lens._n||0)+1);
+  const cell=(c,i)=>'<td'+(i?' class="n"':'')+'>'+c+'</td>';
+  return '<div class="dl" id="'+id+'">'+
+    '<button class="dl-btn" type="button" data-dl="'+id+'" aria-expanded="false">'+
+      '<span class="dl-ico">+</span><span class="dl-lab">Show the underlying data</span>'+
+      '<span class="dl-cnt">'+rows.length+' row'+(rows.length===1?'':'s')+'</span></button>'+
+    '<div class="dl-body"><table class="dl-tbl"><thead><tr>'+
+      cols.map((c,i)=>'<th'+(i?' class="n"':'')+'>'+c+'</th>').join('')+
+    '</tr></thead><tbody>'+
+      rows.map(r=>'<tr>'+r.map(cell).join('')+'</tr>').join('')+
+    '</tbody></table>'+(note?'<div class="dl-note">'+note+'</div>':'')+'</div></div>';
+}
+document.addEventListener('click',function(e){
+  const b=e.target.closest&&e.target.closest('.dl-btn'); if(!b)return;
+  e.preventDefault();
+  const d=document.getElementById(b.dataset.dl); if(!d)return;
+  const open=d.classList.toggle('open');
+  b.setAttribute('aria-expanded',open?'true':'false');
+  b.querySelector('.dl-ico').textContent=open?'\u2212':'+';
+  b.querySelector('.dl-lab').textContent=open?'Hide the underlying data':'Show the underlying data';
+});
+
+/* ---- segment detail --------------------------------------------------------
+   spark() and meters() take an optional per-item detail panel, so hovering a
+   single bar answers "which schools are in this bar" without opening anything. */
+function segTip(head,rows,foot){
+  // kept short on purpose: a tall panel runs off the top of the card
+  return '<div class="segtip"><b>'+head+'</b>'+
+    rows.slice(0,5).map(r=>'<div class="cr"><span>'+esc(r[0])+
+      (r[2]?' <span style="opacity:.6">'+esc(r[2])+'</span>':'')+'</span><span>'+r[1]+'</span></div>').join('')+
+    (rows.length>5?'<div class="sm">Plus '+(rows.length-5)+' more, all in the expanders below.</div>':'')+
+    (foot?'<div class="sm">'+foot+'</div>':'')+'</div>';
+}
+
+/* ---- ring gauge, shared with the ARR Attainment report ---- */
+function gauge(pct,size,sw,opts){
+  const o=opts||{}, r=(size-sw)/2, c=2*Math.PI*r, cx=size/2;
+  const frac=Math.max(Math.min(pct,100),0)/100;
+  const arc=(col,off,cap)=>'<circle cx="'+cx+'" cy="'+cx+'" r="'+r+'" fill="none" stroke="'+col+
+    '" stroke-width="'+sw+'"'+(cap?' stroke-linecap="round"':'')+
+    ' stroke-dasharray="'+c+'" stroke-dashoffset="'+off+'"/>';
+  return '<span class="rg" style="width:'+size+'px;height:'+size+'px'+
+    (o.txt?';--rgtxt:'+o.txt:'')+'">'+
+    '<svg width="'+size+'" height="'+size+'">'+
+      arc(o.track||'rgba(255,255,255,0.22)',0)+
+      (frac>0?arc(o.color||'#fff',c*(1-frac),true):'')+
+    '</svg><span class="rv" style="font-size:'+(o.fs||Math.round(size*0.26))+'px">'+
+    (o.label!==undefined?o.label:Math.round(pct)+'%')+
+    (o.sub?'<small>'+o.sub+'</small>':'')+'</span></span>';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+// Matching institution names between three systems that spell them differently:
+// Pipedrive ("Tallahassee State College"), RFPSchoolWatch ("State University of
+// New York") and IPEDS ("Tallahassee Community College"). Never auto-accept a
+// weak match; put it in a review queue instead.
+
+const NOISE = [
+  'the', 'a', 'of', 'at', 'and',
+  'community', 'college', 'colleges', 'university', 'universities',
+  'technical', 'institute', 'state', 'district', 'system', 'office',
+  'campus', 'main', 'inc', 'llc',
+];
+
+export function normalise(name = '') {
+  return String(name)
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+}
+
+// Distinctive tokens only: what is left once every word that appears on half
+// the institutions in the country is removed.
+export function tokens(name = '') {
+  return normalise(name)
+    .split(' ')
+    .filter((t) => t.length > 2 && !NOISE.includes(t));
+}
+
+function jaccard(a, b) {
+  const A = new Set(a), B = new Set(b);
+  if (!A.size || !B.size) return 0;
+  let hit = 0;
+  for (const t of A) if (B.has(t)) hit++;
+  return hit / (A.size + B.size - hit);
+}
+
+// "Northwest Arkansas Community College" -> "nacc". Acronyms are how reps
+// actually write these names, and token overlap scores them at zero.
+function acronym(name = '') {
+  return normalise(name).split(' ').filter(Boolean).map((w) => w[0]).join('');
+}
+
+export function score(left, right) {
+  const ln = normalise(left), rn = normalise(right);
+  if (ln && ln === rn) return 1;
+
+  const lt = tokens(left), rt = tokens(right);
+
+  // One side is an acronym of the other.
+  const la = normalise(left).replace(/\s/g, ''), ra = normalise(right).replace(/\s/g, '');
+  if ((la.length <= 8 && la === acronym(right)) || (ra.length <= 8 && ra === acronym(left))) {
+    return 0.82;   // strong, but land it in review rather than accepting blind
+  }
+
+  if (!lt.length || !rt.length) return 0;
+  let s = jaccard(lt, rt);
+  if (lt.every((t) => rt.includes(t)) || rt.every((t) => lt.includes(t))) s = Math.max(s, 0.9);
+
+  // Guard against over-stripping. "Tallahassee Community College" and
+  // "Tallahassee State College" both reduce to one token and would otherwise
+  // score a perfect match, which is luck rather than evidence.
+  const thin = Math.min(lt.length, rt.length) <= 1;
+  if (thin && s >= 0.85) s = 0.8;
+
+  return s;
+}
+
+// Returns { matched, review, unmatched }. Anything between the two thresholds
+// is surfaced for a human rather than guessed at.
+export function reconcile(sources, targets, {
+  sourceName = (x) => x.name,
+  targetName = (x) => x.name,
+  accept = 0.85,
+  consider = 0.55,
+  aliases = {},          // { "nwacc": "Northwest Arkansas Community College" }
+} = {}) {
+  const alias = new Map(
+    Object.entries(aliases).map(([k, v]) => [normalise(k), normalise(v)]),
+  );
+  const matched = [], review = [], unmatched = [];
+  for (const s of sources) {
+    const raw = sourceName(s);
+    const canonical = alias.get(normalise(raw));
+    let best = null, bestScore = 0;
+    for (const t of targets) {
+      // An alias is a human decision, so it beats anything the scorer produces.
+      if (canonical && normalise(targetName(t)) === canonical) { best = t; bestScore = 1; break; }
+      const v = score(raw, targetName(t));
+      if (v > bestScore) { bestScore = v; best = t; }
+    }
+    if (bestScore >= accept) matched.push({ source: s, target: best, score: +bestScore.toFixed(3) });
+    else if (bestScore >= consider) review.push({ source: s, target: best, score: +bestScore.toFixed(3) });
+    else unmatched.push({ source: s, score: +bestScore.toFixed(3) });
+  }
+  return { matched, review, unmatched };
+}
