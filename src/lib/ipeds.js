@@ -86,48 +86,64 @@ export function summarise(rows) {
 
 
 // ---- Graduation rates ------------------------------------------------------
-// The GR component reports many rows per institution (cohort, race, sex), so the
-// rate has to be derived. Field names shift between portal releases, so this
-// tries the known shapes in order and records which one it used rather than
-// silently producing a number nobody can trace.
+// IPEDS reports the GR component as many rows per institution: one per race,
+// sex and attendance status, PLUS an "all students" total row. Summing every row
+// double counts, because the total already contains the subgroups. The fix is to
+// use the total row and ignore the breakdowns.
+//
+// Urban codes "all" as 99 on the disaggregating fields.
 
-const RATE_FIELDS = ['grad_rate', 'graduation_rate', 'grad_rate_150'];
+const ALL = 99;
+const GROUP_FIELDS = ['race', 'sex', 'ftpt', 'sector', 'cohort_level'];
+const RATE_FIELDS = ['grad_rate', 'graduation_rate', 'grad_rate_150', 'grad_rate_150pct'];
 const NUM_PAIRS = [
   ['grad_cohort_ct', 'grad_cohort'],
   ['completers_150pct', 'cohort'],
   ['grad_150', 'grad_cohort'],
   ['completers', 'cohort'],
+  ['awards', 'cohort'],
 ];
 
-export function completionRate(rows) {
-  if (!rows || !rows.length) return null;
+// Prefer the total row. If the data is not disaggregated at all, every row counts.
+function totalRows(rows) {
+  const present = GROUP_FIELDS.filter((f) => rows.some((r) => r[f] !== undefined));
+  if (!present.length) return rows;
+  const totals = rows.filter((r) => present.every((f) => r[f] === ALL || r[f] === undefined));
+  return totals.length ? totals : rows;
+}
 
-  // A published rate on any row wins.
+export function graduationRate(rows) {
+  if (!rows || !rows.length) return null;
+  const use = totalRows(rows);
+
+  // A published rate on the total row wins.
   for (const f of RATE_FIELDS) {
-    const vals = rows.map((r) => r[f]).filter((v) => typeof v === 'number' && v >= 0);
+    const vals = use.map((r) => r[f]).filter((v) => typeof v === 'number' && v >= 0);
     if (vals.length) {
       const v = vals.reduce((a, b) => a + b, 0) / vals.length;
-      return { rate: v > 1 ? v : v * 100, method: f, rows: vals.length };
+      return { rate: v > 1 ? v : v * 100, method: f, rows: vals.length, ofTotal: use.length !== rows.length };
     }
   }
 
-  // Otherwise sum completers over cohort across the rows.
+  // Otherwise completers over cohort, on the total rows only.
   for (const [num, den] of NUM_PAIRS) {
     let n = 0, d = 0, used = 0;
-    for (const r of rows) {
+    for (const r of use) {
       if (typeof r[num] === 'number' && typeof r[den] === 'number' && r[den] > 0) {
         n += r[num]; d += r[den]; used++;
       }
     }
-    if (d > 0) return { rate: (n / d) * 100, method: `${num}/${den}`, rows: used };
+    if (d > 0) {
+      return { rate: (n / d) * 100, method: `${num}/${den}`, rows: used, ofTotal: use.length !== rows.length };
+    }
   }
   return null;
 }
 
-// One completion rate per institution, for the unit IDs given.
+// Kept as an alias so nothing breaks; graduation rate is the correct IPEDS name.
+export const completionRate = graduationRate;
+
 export async function completionByUnit(unitids, year, endpoint = 'gradRates') {
-  // Chunked: 400 comma separated IDs makes a URL long enough for some gateways
-  // to reject, and the response is large enough to be worth not holding at once.
   const CHUNK = Number(process.env.IPEDS_CHUNK || 40);
   const rows = [];
   for (let i = 0; i < unitids.length; i += CHUNK) {
@@ -141,12 +157,11 @@ export async function completionByUnit(unitids, year, endpoint = 'gradRates') {
   }
   const out = [];
   for (const [unitid, rs] of by) {
-    const c = completionRate(rs);
+    const c = graduationRate(rs);
     if (c) out.push({ unitid, rate: Math.round(c.rate * 10) / 10, method: c.method, rows: c.rows });
   }
   return out;
 }
-
 
 // ---- Endpoint discovery ----------------------------------------------------
 // Endpoint names and the newest year carrying data both shift between portal
@@ -177,9 +192,14 @@ export async function discoverCompletion({
         const rows = body.results || [];
         if (!rows.length) { tried.push({ endpoint, year, rows: 0 }); continue; }
         // Only useful if a rate can actually be derived from these rows.
-        const c = completionRate(rows);
-        tried.push({ endpoint, year, rows: rows.length, usable: !!c, method: c?.method || null });
-        if (c) return { endpoint, year, method: c.method, fields: Object.keys(rows[0]), tried };
+        const c = graduationRate(rows);
+        const ok = !!(c && c.rate != null);
+        tried.push({
+          endpoint, year, rows: rows.length, usable: ok,
+          method: c?.method || null,
+          numericFields: c?.numericFields || null,
+        });
+        if (ok) return { endpoint, year, method: c.method, fields: Object.keys(rows[0]), tried };
       } catch (e) {
         tried.push({ endpoint, year, error: e.name === 'TimeoutError' ? 'timeout' : e.message });
       }
@@ -206,8 +226,8 @@ export async function completionByPath(unitids, endpoint, year) {
   }
   const out = [];
   for (const [unitid, rs] of by) {
-    const c = completionRate(rs);
-    if (c) out.push({ unitid, rate: Math.round(c.rate * 10) / 10, method: c.method, rows: c.rows });
+    const c = graduationRate(rs);
+    if (c && c.rate != null) out.push({ unitid, rate: Math.round(c.rate * 10) / 10, method: c.method, rows: c.rows });
   }
   return out;
 }
