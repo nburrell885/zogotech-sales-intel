@@ -203,7 +203,7 @@ export async function refresh({ includeRfp = true, includeIpeds = true } = {}) {
       orgs: pd.orgs.map((o) => ({ id: o.id, name: o.name, owner: orgOwner.get(o.id)?.owner ?? null })),
     pipelines: [...new Set(pd.stages.map((x) => x.pipeline_id))].filter(Boolean)
       .map((id) => ({ id, name: PIPELINE_NAMES[id] || `Pipeline ${id}` })),
-      days: Number(process.env.LEADERSHIP_DAYS || 120),
+      days: Number(process.env.LEADERSHIP_DAYS || 365),
       aliases,
     });
     // keep anything already seen, so a feed dropping an item does not lose it
