@@ -12,6 +12,13 @@ import { read, write } from '../lib/store.js';
 
 const IPEDS_YEAR = Number(process.env.IPEDS_YEAR || 2022);
 
+// Pipedrive pipeline IDs carry the business type. Override with
+// PIPELINE_NEW / PIPELINE_UPSELL if the numbering differs.
+const PIPELINE_NAMES = {
+  [Number(process.env.PIPELINE_NEW || 2)]: 'New Sales',
+  [Number(process.env.PIPELINE_UPSELL || 5)]: 'Upsells',
+};
+
 // Pipedrive stores ARR on the deal alongside `value`, which is contract value.
 // Anything reported as ARR must come from `arr`, never from `value`.
 const money = (d) => ({
@@ -20,6 +27,14 @@ const money = (d) => ({
   mrr: d.mrr ?? null,
   tcv: d.value ?? null,
 });
+
+// Which pipelines count as new business. Everything else is treated as upsell.
+// Set NEW_PIPELINE_IDS in the environment if the split is different.
+const NEW_PIPELINES = String(process.env.NEW_PIPELINE_IDS || '2')
+  .split(',').map((x) => Number(x.trim())).filter(Boolean);
+
+const dealType = (pid) =>
+  pid == null ? 'unknown' : (NEW_PIPELINES.includes(Number(pid)) ? 'new' : 'upsell');
 
 function shapeDeal(d, users) {
   const owner = users.find((u) => u.id === (d.owner_id?.id ?? d.owner_id));
@@ -32,6 +47,8 @@ function shapeDeal(d, users) {
     owner: owner?.name ?? null,
     status: d.status,
     stage: d.stage_id?.name ?? d.stage_id ?? null,
+    pipelineId: d.pipeline_id?.id ?? d.pipeline_id ?? null,
+    pipelineId: d.pipeline_id?.id ?? d.pipeline_id ?? null,
     probability: d.probability ?? null,
     expectedClose: d.expected_close_date ?? null,
     addTime: d.add_time ?? null,
@@ -40,6 +57,7 @@ function shapeDeal(d, users) {
     lostTime: d.lost_time ?? null,
     lostReason: d.lost_reason ?? null,
     origin: d.origin ?? null,
+    dealType: dealType(d.pipeline_id?.id ?? d.pipeline_id),
     ...money(d),
   };
 }
@@ -76,6 +94,15 @@ export async function refresh({ includeRfp = true, includeIpeds = true } = {}) {
     if (!id) continue;
     const prev = nextByDeal.get(id);
     if (!prev || (a.due_date || '') < (prev.due_date || '')) nextByDeal.set(id, a);
+  }
+
+  // Owner per organisation, taken from its open deals. The prospecting reports
+  // know an institution but not a rep, and this is the only link between them.
+  const orgOwner = new Map();
+  for (const d of [...deals.open, ...deals.won, ...deals.lost]) {
+    if (d.orgId && d.owner && !orgOwner.has(d.orgId)) {
+      orgOwner.set(d.orgId, { ownerId: d.ownerId, owner: d.owner });
+    }
   }
 
   // ---- IPEDS ---------------------------------------------------------------
@@ -121,9 +148,11 @@ export async function refresh({ includeRfp = true, includeIpeds = true } = {}) {
         completionYear: found.year,
         matched: rec.matched.map((m) => {
           const c = rateBy.get(m.target.unitid);
+          const own = orgOwner.get(m.source.id) || {};
           return {
             orgId: m.source.id,
             orgName: m.source.name,
+            owner: own.owner ?? null,
             unitid: m.target.unitid,
             ipedsName: m.target.inst_name || m.target.institution_name,
             state: m.target.fips ?? null,
@@ -149,10 +178,16 @@ export async function refresh({ includeRfp = true, includeIpeds = true } = {}) {
   let rfp = await read('rfp', { bids: [] });
   if (includeRfp) {
     try {
-      const fresh = await ingest({ days: Number(process.env.RFP_DAYS || 60), orgs: pd.orgs });
+      const fresh = await ingest({
+        days: Number(process.env.RFP_DAYS || 60),
+        orgs: pd.orgs.map((o) => ({ id: o.id, name: o.name })),
+      });
       // Keep the earliest sighting of a bid we have seen before.
       const prior = new Map((rfp.bids || []).map((b) => [b.docId, b]));
-      for (const b of fresh.bids) prior.set(b.docId, { ...prior.get(b.docId), ...b });
+      for (const b of fresh.bids) {
+        const own = b.pipedriveOrgId ? orgOwner.get(b.pipedriveOrgId) : null;
+        prior.set(b.docId, { ...prior.get(b.docId), ...b, owner: own?.owner ?? null });
+      }
       rfp = { ...fresh, bids: [...prior.values()] };
     } catch (e) {
       errors.push(`RFP: ${e.message}`);
@@ -165,13 +200,18 @@ export async function refresh({ includeRfp = true, includeIpeds = true } = {}) {
     const aliases = (await read('aliases', {})) || {};
     delete aliases._comment;
     const fresh = await ingestLeadership({
-      orgs: pd.orgs.map((o) => ({ id: o.id, name: o.name })),
+      orgs: pd.orgs.map((o) => ({ id: o.id, name: o.name, owner: orgOwner.get(o.id)?.owner ?? null })),
+    pipelines: [...new Set(pd.stages.map((x) => x.pipeline_id))].filter(Boolean)
+      .map((id) => ({ id, name: PIPELINE_NAMES[id] || `Pipeline ${id}` })),
       days: Number(process.env.LEADERSHIP_DAYS || 120),
       aliases,
     });
     // keep anything already seen, so a feed dropping an item does not lose it
     const prior = new Map((leadership.moves || []).map((m) => [m.link || m.title, m]));
-    for (const m of fresh.moves) prior.set(m.link || m.title, { ...prior.get(m.link || m.title), ...m });
+    for (const m of fresh.moves) {
+      const own = m.orgId ? orgOwner.get(m.orgId) : null;
+      prior.set(m.link || m.title, { ...prior.get(m.link || m.title), ...m, owner: own?.owner ?? null });
+    }
     leadership = { ...fresh, moves: [...prior.values()] };
   } catch (e) {
     errors.push(`Leadership: ${e.message}`);
@@ -183,6 +223,7 @@ export async function refresh({ includeRfp = true, includeIpeds = true } = {}) {
     errors,
     users: users.map((u) => ({ id: u.id, name: u.name, email: u.email })),
     stages: pd.stages.map((s) => ({ id: s.id, name: s.name, pipelineId: s.pipeline_id })),
+    newPipelines: NEW_PIPELINES,
     deals,
     leads: pd.leads,
     orgs: pd.orgs.map((o) => ({ id: o.id, name: o.name })),
