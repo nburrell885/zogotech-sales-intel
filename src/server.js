@@ -8,6 +8,7 @@ import { authClient, SCOPES } from './lib/gmail.js';
 import { ENDPOINTS } from './lib/ipeds.js';
 import { reviewBatch } from './lib/plans.js';
 import { FEEDS, isLeadershipMove } from './lib/leadership.js';
+import { fetchAwards, shape, PROGRAMS } from './lib/grants.js';
 import { write } from './lib/store.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -248,6 +249,24 @@ app.get('/api/probe/gradfields', async (req, res) => {
     }
   }
   res.json({ unitid, found: null, tried: out });
+});
+
+// ---- grant feed check ------------------------------------------------------
+app.get('/api/probe/grants', async (req, res) => {
+  const years = Number(req.query.years || 4);
+  const started = Date.now();
+  try {
+    const rows = await fetchAwards({ years, limit: 20, pages: 1 });
+    res.json({
+      ok: true, ms: Date.now() - started, rows: rows.length,
+      programs: PROGRAMS,
+      fields: rows[0] ? Object.keys(rows[0]) : [],
+      shaped: rows.slice(0, 3).map(shape),
+      sample: rows.slice(0, 2),
+    });
+  } catch (e) {
+    res.json({ ok: false, ms: Date.now() - started, error: e.message });
+  }
 });
 
 // ---- feed check, in the browser -------------------------------------------
