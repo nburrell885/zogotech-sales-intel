@@ -11,6 +11,7 @@
     ['/leads-by-ae.html',     'Leads',           'Set per week'],
     ['/rfp.html',             'RFP Bids',        'From RFPSchoolWatch'],
     ['/ipeds.html',           'IPEDS',           'Institution data'],
+    ['/leadership.html',      'Leadership',      'Presidential changes'],
     ['/plans.html',           'Strategic Plans', 'Researched with Claude'],
   ];
 
