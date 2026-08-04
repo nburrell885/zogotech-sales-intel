@@ -7,6 +7,7 @@ import { refresh } from './jobs/refresh.js';
 import { authClient, SCOPES } from './lib/gmail.js';
 import { ENDPOINTS } from './lib/ipeds.js';
 import { reviewBatch } from './lib/plans.js';
+import { FEEDS, isLeadershipMove } from './lib/leadership.js';
 import { write } from './lib/store.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -205,6 +206,27 @@ app.get('/oauth2callback', async (req, res) => {
   }
 });
 
+// ---- feed check, in the browser -------------------------------------------
+app.get('/api/probe/feeds', async (_req, res) => {
+  const out = await Promise.all(FEEDS.map(async (f) => {
+    const started = Date.now();
+    try {
+      const r = await fetch(f.url, {
+        signal: AbortSignal.timeout(12000),
+        headers: { Accept: 'application/rss+xml, application/xml, text/xml, */*',
+          'User-Agent': 'ZogoTech-Sales-Intel/0.1 (+contact: nburrell@zogotech.com)' },
+      });
+      const body = r.ok ? await r.text() : '';
+      const items = (body.match(/<item[\s>]/gi) || body.match(/<entry[\s>]/gi) || []).length;
+      return { name: f.name, url: f.url, ok: r.ok, status: r.status, items, ms: Date.now() - started };
+    } catch (e) {
+      return { name: f.name, url: f.url, ok: false, ms: Date.now() - started,
+        error: e.name === 'TimeoutError' ? 'timed out' : e.message };
+    }
+  }));
+  res.json({ working: out.filter((f) => f.ok && f.items).map((f) => f.name), feeds: out });
+});
+
 // ---- IPEDS endpoint check, in the browser ----------------------------------
 app.get('/api/probe/ipeds', async (req, res) => {
   const year = Number(req.query.year || process.env.IPEDS_YEAR || 2022);
@@ -256,9 +278,24 @@ function page(title, body) {
   <h1>${title}</h1>${body}`;
 }
 
+// A background job must never take the site down. Node exits on an unhandled
+// rejection by default, so a failure inside a scheduled refresh would kill the
+// process and every report with it.
+process.on('unhandledRejection', (err) => {
+  console.error('unhandled rejection (ignored, site stays up):', err?.message || err);
+});
+process.on('uncaughtException', (err) => {
+  console.error('uncaught exception (ignored, site stays up):', err?.message || err);
+});
+
 const port = Number(process.env.PORT || 3000);
-app.listen(port, async () => {
-  console.log(`ZogoTech sales intel listening on ${port}`);
+
+// Bind explicitly to 0.0.0.0. A platform proxy cannot reach a server listening
+// only on localhost, which shows up as a 502 with a perfectly healthy container.
+app.listen(port, '0.0.0.0', async () => {
+  console.log(`ZogoTech sales intel listening on 0.0.0.0:${port}`);
+  console.log(`PORT env: ${process.env.PORT || '(not set, defaulted to 3000)'}`);
+  console.log(`DATA_DIR: ${process.env.DATA_DIR || './data'}`);
 
   // Refresh on its own so nobody has to remember to click anything. Kept inside
   // the app rather than as a platform cron, so it moves with the code.
@@ -269,10 +306,14 @@ app.listen(port, async () => {
 
     const existing = await read('snapshot');
     if (!existing) {
-      console.log('no snapshot on disk, pulling one now');
-      setTimeout(tick, 5000);          // let the app finish booting first
+      // Wait properly before the first pull. A heavy refresh seconds after boot
+      // competes with the platform's own health checks and can look like a dead app.
+      const delay = Number(process.env.REFRESH_BOOT_DELAY_MS || 45000);
+      console.log(`no snapshot on disk; first pull in ${Math.round(delay / 1000)}s`);
+      setTimeout(tick, delay);
     } else {
       lastRun = Date.parse(existing.pulledAt) || 0;
+      console.log(`snapshot on disk from ${existing.pulledAt}`);
     }
     setInterval(tick, EVERY_MIN * 60 * 1000);
     console.log(`auto refresh every ${EVERY_MIN} minutes`);
