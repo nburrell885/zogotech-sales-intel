@@ -209,10 +209,16 @@
   <div class="secsub">Records that will quietly break a forecast. None of these are performance problems; they are fields that need two minutes each.</div>
   <div class="panel" id="hyg"></div>
 
-  <div class="sec" id="feeds"><span class="oline"></span><h2>Outside Feeds Worth Adding</h2>
-    <span class="badge" style="font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:4px 10px;border-radius:20px;background:rgba(242,135,46,0.14);color:var(--orange-deep)">Not connected yet</span>
+  <div class="sec" id="prospect"><span class="oline"></span><h2>Prospecting Feeds</h2>
+    <span class="badge" style="font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:4px 10px;border-radius:20px;background:rgba(46,125,107,0.14);color:var(--good)">Live</span>
     <span class="line"></span></div>
-  <div class="secsub">Nothing below is live. This is the shortlist of external sources that would feed a prospecting board, ordered by how hard each one is to actually wire up. Green means a free public API exists today.</div>
+  <div class="secsub">Outside sources now feeding this app. Counts come from the last refresh; each opens its own report.</div>
+  <div class="grid" id="feedtiles"></div>
+
+  <div class="sec" id="feeds"><span class="oline"></span><h2>Still to Add</h2>
+    <span class="badge" style="font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:4px 10px;border-radius:20px;background:rgba(242,135,46,0.14);color:var(--orange-deep)">Not connected</span>
+    <span class="line"></span></div>
+  <div class="secsub">Sources that would still be worth wiring up, ordered by how hard each one is.</div>
   <div class="feeds" id="feedlist"></div>
 
   <div class="note"><div class="mark"></div>
@@ -271,20 +277,12 @@ const HYG=[
 ];
 
 const FEEDS=[
- {t:'IPEDS graduation and retention data',tag:'now',
-  how:'Every community college in the country, with 150% graduation rate, retention, enrollment trend and finance, updated annually. Free, and the Urban Institute publishes a clean API over it. This is the strongest prospecting signal available: rank institutions by falling completion or falling enrollment and you have a list of schools with the exact problem the product solves.'},
  {t:'Title III and Title V grant awards',tag:'now',
   how:'The Department of Education publishes its grantee lists. These are institutions with new money and a federal mandate tied to student success and institutional capacity. Highland is already a live example, with its close date built around the 30 September award. A quarterly pull would surface the whole cohort rather than the ones we happen to hear about.'},
  {t:'SAM.gov and state procurement portals',tag:'now',
   how:'SAM.gov has a free API for federal opportunities. Most states run their own portal, many with RSS or a published feed. Not a replacement for a paid service, but it covers a real slice at no cost and can be filtered to the same criteria.'},
- {t:'GovSpend and RFP BidWatch',tag:'soon',
-  how:'Both are subscriptions you already pay for. The question is whether your plan includes API access or only the web app and email alerts. If it is API, this is straightforward. If it is alerts only, the practical route is a dedicated mailbox that receives them and a parser that turns each alert into a row. Worth one call to each vendor to confirm before designing around it.'},
- {t:'Leadership changes at community colleges',tag:'soon',
-  how:'No single source, but several good partial ones: the ACCT presidential search listings, Community College Daily announcements, and the transitions columns in Higher Ed Dive and Inside Higher Ed. All publish feeds that can be filtered for president, provost, CIO and institutional research titles, then matched against the account list. A new president is a real buying trigger, and KCKCC and Imperial Valley are both live examples right now.'},
  {t:'Achieving the Dream and Aspen Prize lists',tag:'soon',
   how:'Published membership and finalist lists identifying institutions that have publicly committed to a data-driven student success agenda. Small, stable, easy to match against accounts, and a direct signal of cultural fit.'},
- {t:'Strategic plans and board minutes',tag:'hard',
-  how:'The richest source and the least structured. Plans are PDFs scattered across college websites with no common format, and board minutes are worse. Feasible for a target list of fifty accounts as a periodic review, not as an automated feed. Realistically this is where a person reads and the system stores what they found.'},
  {t:'NCCBP benchmark participation',tag:'soon',
   how:'You already source leads this way, and there is a lead in Pipedrive to prove it. Participating institutions have by definition opted into measuring themselves against peers, which is the closest thing to a declared intent signal in this market.'}
 ];
@@ -385,6 +383,67 @@ document.getElementById('hyg').innerHTML=HYG.map(h=>
   '<span><span class="flag '+h.sev+'">'+(h.sev==='ok'?'clear':h.n+' to fix')+'</span></span>'+
   '<span class="amt">'+(h.n||'&mdash;')+'</span>'+
   panel(h.t,h.rows,h.why)+'</div>').join('');
+
+// ---- live prospecting tiles ----
+// These read the last refresh rather than carrying their own data, so they stay
+// honest about what has actually been pulled.
+const FEEDTILES=[
+ {id:'rfp',label:'RFP Bids',url:'/rfp.html',fill:'linear-gradient(155deg,#2E7CB8,#1D5488)',
+  glow:'rgba(29,84,136,0.5)',
+  count:d=>((d.rfp&&d.rfp.bids)||[]).length,
+  sub:d=>{const b=(d.rfp&&d.rfp.bids)||[];
+    return b.filter(x=>x.relevant).length+' relevant &middot; '+
+           b.filter(x=>x.pipedriveOrgId).length+' at accounts you already have';},
+  unit:' bids',
+  blank:'No bids yet. They arrive with the next refresh.'},
+ {id:'ipeds',label:'Below the Grad Rate Threshold',url:'/ipeds.html',
+  fill:'linear-gradient(155deg,#F49A4C,#E07A1C)',glow:'rgba(242,135,46,0.5)',
+  count:d=>{const m=(d.ipeds&&d.ipeds.matched)||[];
+    return m.filter(x=>x.belowThreshold===true).length;},
+  sub:d=>{const ip=d.ipeds||{},m=ip.matched||[];
+    const rated=m.filter(x=>typeof x.gradRate==='number').length;
+    return 'Completion under '+(ip.lowThreshold||40)+'% &middot; '+rated+' of '+m.length+
+      ' accounts have a rate resolved';},
+  unit:' schools',
+  blank:'No completion rates resolved yet. Check /api/probe/ipeds.'},
+ {id:'lead',label:'Leadership Changes',url:'/leadership.html',
+  fill:'linear-gradient(155deg,#3A9382,#2E7D6B)',glow:'rgba(46,125,107,0.5)',
+  count:d=>((d.leadership&&d.leadership.moves)||[]).length,
+  sub:d=>{const mv=(d.leadership&&d.leadership.moves)||[];
+    const src=(d.leadership&&d.leadership.sources)||[];
+    return mv.filter(x=>x.orgId).length+' at your accounts &middot; '+
+      src.filter(x=>x.ok).length+' of '+src.length+' feeds responding';},
+  unit:' moves',
+  blank:'No moves found yet. Check /api/probe/feeds.'},
+ {id:'plans',label:'Strategic Plans',url:'/plans.html',
+  fill:'linear-gradient(155deg,#6FA6D0,#3E6E95)',glow:'rgba(91,147,196,0.5)',
+  count:()=>PLANS.results?PLANS.results.length:0,
+  sub:()=>{const r=PLANS.results||[];
+    if(!r.length)return 'Nothing reviewed yet &middot; run a batch of up to 20';
+    const found=r.filter(x=>x.planFound).length;
+    const strong=r.filter(x=>(x.fit||0)>=4).length;
+    return found+' plans found &middot; '+strong+' scoring 4 or better';},
+  unit:' reviewed',
+  blank:'Nothing reviewed yet. Run a batch from the report.'}
+];
+let PLANS={results:[]};
+
+function paintFeedTiles(d){
+  document.getElementById('feedtiles').innerHTML=FEEDTILES.map(f=>{
+    let n=0; try{ n=f.count(d)||0; }catch(e){ n=0; }
+    const sub = n ? f.sub(d) : f.blank;
+    return '<a class="tile" href="'+f.url+'" style="--fill:'+f.fill+';--glow:'+f.glow+'">'+
+      '<span class="glow"></span>'+
+      '<div class="top"><span class="tlabel">'+f.label+'</span><span class="arrow">&#8599;</span></div>'+
+      '<div class="big">'+n+'<small>'+f.unit+'</small></div>'+
+      '<div class="cap">'+sub+'</div></a>';
+  }).join('');
+}
+
+Promise.all([
+  fetch('/api/data').then(r=>r.ok?r.json():{}).catch(()=>({})),
+  fetch('/api/plans').then(r=>r.ok?r.json():{results:[]}).catch(()=>({results:[]})),
+]).then(([d,p])=>{ PLANS=p||{results:[]}; paintFeedTiles(d||{}); });
 
 document.getElementById('feedlist').innerHTML=FEEDS.map(f=>{
   const lbl={now:'Free API today',soon:'Needs a decision',hard:'Manual for now'}[f.tag];
