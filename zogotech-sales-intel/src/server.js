@@ -6,6 +6,8 @@ import { read } from './lib/store.js';
 import { refresh } from './jobs/refresh.js';
 import { authClient, SCOPES } from './lib/gmail.js';
 import { ENDPOINTS } from './lib/ipeds.js';
+import { reviewBatch } from './lib/plans.js';
+import { write } from './lib/store.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -120,6 +122,50 @@ app.post('/api/refresh', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// ---- Strategic plan review ------------------------------------------------
+// A batch of 20 takes 10 to 30 minutes, so it runs in the background and the
+// page polls. Results are written after each school, not at the end.
+let planRun = null;
+
+app.get('/api/plans', async (_req, res) => {
+  const data = await read('plans', { results: [], total: 0, startedAt: null });
+  res.json({ ...data, running: !!planRun });
+});
+
+app.post('/api/plans', async (req, res) => {
+  if (planRun) return res.status(409).json({ error: 'A review is already running.' });
+
+  const schools = (req.body?.schools || [])
+    .map((x) => String(x).trim()).filter(Boolean).slice(0, 20);
+  if (!schools.length) return res.status(400).json({ error: 'No schools given.' });
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(400).json({ error: 'ANTHROPIC_API_KEY is not set in Railway.' });
+  }
+
+  await write('plans', { results: [], total: schools.length, startedAt: new Date().toISOString() });
+
+  planRun = reviewBatch(schools, async (results, total) => {
+    await write('plans', { results, total, startedAt: new Date().toISOString() });
+  }).then(async (results) => {
+    await write('plans', {
+      results, total: schools.length,
+      startedAt: new Date().toISOString(), finishedAt: new Date().toISOString(),
+    });
+  }).catch((e) => console.error('plan review failed:', e.message))
+    .finally(() => { planRun = null; });
+
+  res.json({ started: true, total: schools.length });
+});
+
+// Accounts the app already knows about, for the school picker.
+app.get('/api/accounts', async (_req, res) => {
+  const data = await read('snapshot');
+  const open = data?.deals?.open || [];
+  const seen = new Map();
+  for (const d of open) if (d.org && !seen.has(d.org)) seen.set(d.org, { name: d.org, arr: d.arr });
+  res.json({ accounts: [...seen.values()].sort((a, b) => (b.arr || 0) - (a.arr || 0)) });
 });
 
 // ---- Google consent, done in the browser -----------------------------------
