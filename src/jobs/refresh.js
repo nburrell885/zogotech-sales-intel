@@ -159,6 +159,7 @@ export async function refresh({ includeRfp = true, includeIpeds = true } = {}) {
             score: m.score,
             gradRate: c ? c.rate : null,
             gradMethod: c ? c.method : null,
+            gradWindow: c ? (c.window ?? null) : null,
             belowThreshold: c ? c.rate < LOW : null,
           };
         }),
