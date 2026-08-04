@@ -78,6 +78,15 @@
     border-radius:16px;padding:18px 22px;font-size:13px;color:var(--ink-2);margin:30px 0;line-height:1.6}
   .note .mark{flex:none;width:4px;border-radius:3px;background:var(--orange)}
   .note b{color:var(--navy);font-weight:600}
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .filters input[type=search]{flex:1 1 260px;min-width:200px}
+  .filters select{font-family:'Inter';font-size:13px;padding:12px 14px;border:1px solid var(--rule);
+    border-radius:11px;background:var(--paper);color:var(--ink);cursor:pointer;min-width:180px}
+  .filters select:focus-visible,.filters input:focus-visible{outline:none;border-color:var(--sky);
+    box-shadow:0 0 0 3px rgba(62,155,214,.2)}
+  .filters .ghost{background:transparent;color:var(--ink-2);border:1px solid var(--rule);padding:11px 16px}
+  .filters .ghost:hover{border-color:var(--sky);color:var(--navy)}
+  .hits{font-size:11.5px;color:var(--ink-3);padding:2px 4px 10px}
   .foot{font-size:10.5px;color:var(--ink-3);text-align:center;padding-top:24px;line-height:1.7}
 </style>
 </head>
@@ -92,8 +101,17 @@
   <div class="sec"><span class="oline"></span><h2>Moves</h2><span class="line"></span></div>
   <div class="secsub">Accounts you already have come first. A headline has to name a leadership title and an event word to appear here, so a story that merely mentions a president is filtered out.</div>
   <div class="panel" style="padding:14px 24px 8px">
-    <input type="search" id="q" placeholder="Filter by institution, title or source">
+    <div class="filters">
+      <input type="search" id="q" placeholder="Filter by institution, title or source">
+      <select id="role"><option value="">All positions</option></select>
+      <select id="scope">
+        <option value="">Every institution</option>
+        <option value="mine">Only my accounts</option>
+      </select>
+      <button id="clear" class="ghost">Clear</button>
+    </div>
   </div>
+  <div class="hits" id="hits"></div>
   <div class="panel" id="list"></div>
 
   <div class="sec"><span class="oline"></span><h2>Sources</h2><span class="line"></span></div>
@@ -110,11 +128,46 @@ var esc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/<
 function card(k,v,c,f,g){return '<div class="cell" style="--fill:linear-gradient(155deg,'+f+'dd,'+f+');--glow:'+g+'">'
   +'<div class="k">'+k+'</div><div class="v">'+v+'</div><div class="cap">'+c+'</div></div>'}
 
+// The matcher records raw keywords like "vice president" and "presidential".
+// Group them into the roles a rep would actually filter by.
+var ROLES=[
+  ['President or chancellor', ['president','presidential','chancellor','chancellorship','superintendent']],
+  ['Provost or academic',     ['provost','chief academic officer']],
+  ['Technology',              ['chief information officer','cio','chief data officer']],
+  ['Institutional research',  ['institutional research','institutional effectiveness']],
+  ['Vice president',          ['vice president','vp of','vice chancellor']],
+  ['Dean',                    ['dean of']]
+];
+
+function rolesOf(m){
+  var t=(m.titles||[]);
+  return ROLES.filter(function(r){
+    return r[1].some(function(k){return t.indexOf(k)>-1});
+  }).map(function(r){return r[0]});
+}
+
+function buildRoleOptions(){
+  var counts={};
+  MOVES.forEach(function(m){
+    rolesOf(m).forEach(function(r){counts[r]=(counts[r]||0)+1});
+  });
+  var opts=ROLES.map(function(r){return r[0]}).filter(function(r){return counts[r]});
+  el('role').innerHTML='<option value="">All positions ('+MOVES.length+')</option>'
+    +opts.map(function(r){return '<option value="'+r+'">'+r+' ('+counts[r]+')</option>'}).join('');
+}
+
 function paint(){
   var q=(el('q').value||'').toLowerCase().trim();
+  var role=el('role').value;
+  var mine=el('scope').value==='mine';
   var rows=MOVES.filter(function(m){
+    if(mine && !m.orgId) return false;
+    if(role && rolesOf(m).indexOf(role)===-1) return false;
     return !q||(m.title+' '+(m.orgName||'')+' '+m.source+' '+(m.titles||[]).join(' ')).toLowerCase().indexOf(q)>-1;
   });
+  el('hits').textContent = (q||role||mine)
+    ? rows.length+' of '+MOVES.length+' moves'
+    : MOVES.length+' moves';
   el('list').innerHTML = rows.length ? rows.map(function(m){
     var chips='';
     if(m.orgName) chips+='<span class="chip good">'+esc(m.orgName)+'</span> ';
@@ -150,11 +203,17 @@ fetch('/api/data').then(function(r){return r.json()}).then(function(d){
       +'<div><span class="chip '+(s.ok?'good':'warn')+'">'+(s.ok?'ok':'failed')+'</span></div>'
       +'<div class="amt" style="font-size:12px">'+(s.items||0)+' items</div></div>';
   }).join(''):'<div class="empty">No source information yet.</div>';
+  buildRoleOptions();
   el('foot').textContent='Sources are public higher education news feeds. A headline must name a leadership title and an event to be listed, so passing mentions are excluded.';
   paint();
 }).catch(function(){el('list').innerHTML='<div class="empty">Could not load data.</div>'});
 
 el('q').addEventListener('input',paint);
+el('role').addEventListener('change',paint);
+el('scope').addEventListener('change',paint);
+el('clear').addEventListener('click',function(){
+  el('q').value=''; el('role').value=''; el('scope').value=''; paint();
+});
 </script>
 </body>
 </html>
