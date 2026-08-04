@@ -10,11 +10,38 @@ import { ENDPOINTS } from './lib/ipeds.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use(express.static(path.join(__dirname, '..', 'public'), {
+  setHeaders(res, p) {
+    // Reports and scripts change on every deploy; never let a browser hold an old copy.
+    if (/\.(html|js)$/.test(p)) res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+  },
+}));
 
 let running = null;   // one refresh at a time; a second caller joins the first
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, at: new Date().toISOString() }));
+
+// What the server can see. Reports presence and length only, never a value.
+app.get('/api/config', (_req, res) => {
+  const seen = (k) => {
+    const v = process.env[k];
+    return v ? { set: true, length: String(v).trim().length } : { set: false };
+  };
+  res.json({
+    build: 'browser-oauth-2',      // bump this whenever server.js changes
+    pipedrive: { token: seen('PIPEDRIVE_API_TOKEN'), domain: process.env.PIPEDRIVE_DOMAIN || null },
+    anthropic: seen('ANTHROPIC_API_KEY'),
+    google: {
+      clientId: seen('GOOGLE_CLIENT_ID'),
+      clientSecret: seen('GOOGLE_CLIENT_SECRET'),
+      refreshToken: seen('GOOGLE_REFRESH_TOKEN'),
+      user: process.env.GMAIL_USER || null,
+      label: process.env.GMAIL_LABEL || null,
+    },
+    refreshToken: seen('REFRESH_TOKEN'),
+    dataDir: process.env.DATA_DIR || './data',
+  });
+});
 
 // Everything the reports read.
 app.get('/api/data', async (_req, res) => {
@@ -29,6 +56,9 @@ app.get('/api/status', async (_req, res) => {
   res.json({
     pulledAt: data?.pulledAt ?? null,
     refreshing: !!running,
+    tokenRequired: !!(process.env.REFRESH_TOKEN || '').trim(),
+    pipedriveConfigured: !!process.env.PIPEDRIVE_API_TOKEN,
+    googleConfigured: !!process.env.GOOGLE_REFRESH_TOKEN,
     counts: data ? {
       open: data.deals.open.length,
       won: data.deals.won.length,
@@ -42,9 +72,17 @@ app.get('/api/status', async (_req, res) => {
 // The refresh button. Guarded by a shared token so a public URL cannot be used
 // to hammer Pipedrive from outside.
 app.post('/api/refresh', async (req, res) => {
-  const expected = process.env.REFRESH_TOKEN;
-  const given = req.get('x-refresh-token') || req.body?.token;
-  if (expected && given !== expected) return res.status(401).json({ error: 'Bad refresh token' });
+  const clean = (v) => String(v ?? '').trim().replace(/^["']|["']$/g, '');
+  const expected = clean(process.env.REFRESH_TOKEN);
+  const given = clean(req.get('x-refresh-token') || req.body?.token);
+  if (expected && given !== expected) {
+    return res.status(401).json({
+      error: 'Bad refresh token',
+      hint: given
+        ? `Received a token of ${given.length} characters; the server expects ${expected.length}.`
+        : 'No token reached the server. The page may be running an older version, so hard reload it.',
+    });
+  }
 
   if (!running) {
     running = refresh(req.body || {}).finally(() => { running = null; });
@@ -96,24 +134,42 @@ app.get('/oauth2callback', async (req, res) => {
 // ---- IPEDS endpoint check, in the browser ----------------------------------
 app.get('/api/probe/ipeds', async (req, res) => {
   const year = Number(req.query.year || process.env.IPEDS_YEAR || 2022);
-  const out = [];
-  for (const [name, build] of Object.entries(ENDPOINTS)) {
+  const ms = Number(req.query.timeout || 12000);
+
+  // In parallel with a hard timeout each. Sequentially and unbounded, one slow
+  // endpoint holds the whole page until the gateway gives up.
+  const probe = async ([name, build]) => {
     const url = `https://educationdata.urban.org/api/v1${build(year)}?limit=1`;
+    const started = Date.now();
     try {
-      const r = await fetch(url, { headers: {
-        Accept: 'application/json',
-        'User-Agent': 'ZogoTech-Sales-Intel/0.1 (+contact: nburrell@zogotech.com)',
-      } });
-      const body = r.ok ? await r.json() : null;
-      out.push({
-        name, status: r.status, ok: r.ok,
-        fields: body?.results?.[0] ? Object.keys(body.results[0]).slice(0, 10) : [],
+      const r = await fetch(url, {
+        signal: AbortSignal.timeout(ms),
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'ZogoTech-Sales-Intel/0.1 (+contact: nburrell@zogotech.com)',
+        },
       });
+      const body = r.ok ? await r.json() : null;
+      return {
+        name, ok: r.ok, status: r.status, ms: Date.now() - started,
+        count: body?.count ?? null,
+        fields: body?.results?.[0] ? Object.keys(body.results[0]).slice(0, 10) : [],
+      };
     } catch (e) {
-      out.push({ name, ok: false, error: e.message });
+      return {
+        name, ok: false, ms: Date.now() - started,
+        error: e.name === 'TimeoutError' ? `no response within ${ms}ms` : e.message,
+      };
     }
-  }
-  res.json({ year, endpoints: out });
+  };
+
+  const endpoints = await Promise.all(Object.entries(ENDPOINTS).map(probe));
+  res.json({
+    year,
+    working: endpoints.filter((e) => e.ok).map((e) => e.name),
+    failing: endpoints.filter((e) => !e.ok).map((e) => e.name),
+    endpoints,
+  });
 });
 
 function page(title, body) {
