@@ -17,7 +17,10 @@ async function get(path, params = {}) {
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
   }
-  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+  const res = await fetch(url, { headers: {
+    Accept: 'application/json',
+    'User-Agent': 'ZogoTech-Sales-Intel/0.1 (+contact: nburrell@zogotech.com)',
+  } });
   if (!res.ok) throw new Error(`IPEDS ${path} returned ${res.status}`);
   return res.json();
 }

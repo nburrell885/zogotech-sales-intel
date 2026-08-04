@@ -9,13 +9,14 @@ import { google } from 'googleapis';
 
 export const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
 
-export function authClient() {
+export function authClient(redirectUri) {
   const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN } = process.env;
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
     throw new Error('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are not set');
   }
   const oauth = new google.auth.OAuth2(
-    GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, 'http://localhost:5555/oauth2callback',
+    GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
+    redirectUri || process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5555/oauth2callback',
   );
   if (GOOGLE_REFRESH_TOKEN) oauth.setCredentials({ refresh_token: GOOGLE_REFRESH_TOKEN });
   return oauth;
