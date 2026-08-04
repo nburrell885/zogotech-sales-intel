@@ -206,6 +206,50 @@ app.get('/oauth2callback', async (req, res) => {
   }
 });
 
+// ---- raw graduation-rate rows, so the field names stop being a guess -------
+// IPEDS splits the GR component by cohort window (100%, 150%, 200% of normal
+// time) as well as race and sex. Mixing those windows produces a meaningless
+// number, so we need to see the actual columns before computing anything.
+app.get('/api/probe/gradfields', async (req, res) => {
+  const unitid = String(req.query.unitid || '100654');
+  const years = String(req.query.years || '2022,2021,2020,2019').split(',').map(Number);
+  const endpoints = String(req.query.endpoints || 'grad-rates,grad-rates-200pct,outcome-measures')
+    .split(',');
+  const out = [];
+  for (const ep of endpoints) {
+    for (const y of years) {
+      const url = `https://educationdata.urban.org/api/v1/college-university/ipeds/${ep}/${y}/?unitid=${unitid}`;
+      try {
+        const r = await fetch(url, {
+          signal: AbortSignal.timeout(30000),
+          headers: { Accept: 'application/json',
+            'User-Agent': 'ZogoTech-Sales-Intel/0.1 (+contact: nburrell@zogotech.com)' },
+        });
+        if (!r.ok) { out.push({ endpoint: ep, year: y, status: r.status }); continue; }
+        const b = await r.json();
+        const rows = b.results || [];
+        if (!rows.length) { out.push({ endpoint: ep, year: y, rows: 0 }); continue; }
+        out.push({
+          endpoint: ep, year: y, rows: rows.length,
+          fields: Object.keys(rows[0]),
+          // distinct values on anything that looks like a dimension
+          dimensions: Object.fromEntries(
+            Object.keys(rows[0])
+              .filter((k) => /race|sex|ftpt|cohort|level|time|pct|percent|status/i.test(k))
+              .map((k) => [k, [...new Set(rows.map((r) => r[k]))].slice(0, 12)]),
+          ),
+          sample: rows.slice(0, 3),
+        });
+        // one working endpoint is enough to answer the question
+        return res.json({ unitid, found: out[out.length - 1], tried: out });
+      } catch (e) {
+        out.push({ endpoint: ep, year: y, error: e.name === 'TimeoutError' ? 'timeout' : e.message });
+      }
+    }
+  }
+  res.json({ unitid, found: null, tried: out });
+});
+
 // ---- feed check, in the browser -------------------------------------------
 app.get('/api/probe/feeds', async (_req, res) => {
   const run = async (f) => {
