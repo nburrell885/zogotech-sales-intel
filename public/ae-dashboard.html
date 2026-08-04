@@ -454,7 +454,7 @@ const FEEDTILES=[
     return m.filter(x=>x.belowThreshold===true).length;},
   sub:d=>{const ip=d.ipeds||{},m=ip.matched||[];
     const rated=m.filter(x=>typeof x.gradRate==='number').length;
-    return 'Graduation rate under '+(ip.lowThreshold||40)+'% &middot; '+rated+' of '+m.length+
+    return 'Three-year graduation rate under '+(ip.lowThreshold||20)+'% &middot; '+rated+' of '+m.length+
       ' accounts have a rate resolved';},
   unit:' schools',
   blank:'No graduation rates resolved yet. Check /api/probe/ipeds.'},
