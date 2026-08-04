@@ -33,9 +33,9 @@ const PUBLICATIONS = [
   { name: 'Inside Higher Ed',          url: 'https://www.insidehighered.com/rss/feed/ihe' },
   { name: 'Community College Daily',   url: 'https://www.ccdaily.com/feed/' },
   { name: 'CC Daily · Leadership',     url: 'https://www.ccdaily.com/category/leadership/feed/' },
-  { name: 'CC Daily · People',         url: 'https://www.ccdaily.com/category/people/feed/' },
   { name: 'ACCT',                      url: 'https://www.acct.org/rss.xml' },
-  { name: 'ACCT · News',               url: 'https://www.acct.org/news/rss.xml' },
+  { name: 'CC Daily · Governance',     url: 'https://www.ccdaily.com/category/governance/feed/' },
+  { name: 'Higher Ed Dive · Policy',   url: 'https://www.highereddive.com/feeds/topic/policy-legal/' },
 ];
 
 // Named sources, searched by site so we reach their archives.
