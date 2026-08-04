@@ -208,7 +208,7 @@ app.get('/oauth2callback', async (req, res) => {
 
 // ---- feed check, in the browser -------------------------------------------
 app.get('/api/probe/feeds', async (_req, res) => {
-  const out = await Promise.all(FEEDS.map(async (f) => {
+  const run = async (f) => {
     const started = Date.now();
     try {
       const r = await fetch(f.url, {
@@ -223,48 +223,76 @@ app.get('/api/probe/feeds', async (_req, res) => {
       return { name: f.name, url: f.url, ok: false, ms: Date.now() - started,
         error: e.name === 'TimeoutError' ? 'timed out' : e.message };
     }
-  }));
-  res.json({ working: out.filter((f) => f.ok && f.items).map((f) => f.name), feeds: out });
+  };
+  const out = [];
+  for (let i = 0; i < FEEDS.length; i += 4) {
+    out.push(...await Promise.all(FEEDS.slice(i, i + 4).map(run)));
+  }
+  res.json({
+    totalItems: out.reduce((a, f) => a + (f.items || 0), 0),
+    working: out.filter((f) => f.ok && f.items).length + ' of ' + out.length,
+    dead: out.filter((f) => !f.ok || !f.items).map((f) => f.name),
+    feeds: out,
+  });
 });
 
 // ---- IPEDS endpoint check, in the browser ----------------------------------
 app.get('/api/probe/ipeds', async (req, res) => {
-  const year = Number(req.query.year || process.env.IPEDS_YEAR || 2022);
-  const ms = Number(req.query.timeout || 12000);
+  // Probe the way the app actually queries: filtered by unit ID. Unfiltered,
+  // these are national tables and the row count alone times out, which says
+  // nothing about whether the endpoint works.
+  const years = String(req.query.years || '2022,2021,2020,2019').split(',').map(Number);
+  const unitid = String(req.query.unitid || '100654');   // Alabama A&M, always present
+  const ms = Number(req.query.timeout || 25000);
 
-  // In parallel with a hard timeout each. Sequentially and unbounded, one slow
-  // endpoint holds the whole page until the gateway gives up.
-  const probe = async ([name, build]) => {
-    const url = `https://educationdata.urban.org/api/v1${build(year)}?limit=1`;
+  const CANDIDATES = {
+    ...ENDPOINTS,
+    completers: (y) => `/college-university/ipeds/completers/${y}/`,
+    gradRates200: (y) => `/college-university/ipeds/grad-rates-200pct/${y}/`,
+    outcomeMeasures: (y) => `/college-university/ipeds/outcome-measures/${y}/`,
+  };
+
+  const hit = async (name, build, year) => {
+    const url = `https://educationdata.urban.org/api/v1${build(year)}?unitid=${unitid}`;
     const started = Date.now();
     try {
       const r = await fetch(url, {
         signal: AbortSignal.timeout(ms),
-        headers: {
-          Accept: 'application/json',
-          'User-Agent': 'ZogoTech-Sales-Intel/0.1 (+contact: nburrell@zogotech.com)',
-        },
+        headers: { Accept: 'application/json',
+          'User-Agent': 'ZogoTech-Sales-Intel/0.1 (+contact: nburrell@zogotech.com)' },
       });
-      const body = r.ok ? await r.json() : null;
+      if (!r.ok) return { name, year, ok: false, status: r.status, ms: Date.now() - started };
+      const b = await r.json();
+      const rows = b.results || [];
       return {
-        name, ok: r.ok, status: r.status, ms: Date.now() - started,
-        count: body?.count ?? null,
-        fields: body?.results?.[0] ? Object.keys(body.results[0]).slice(0, 10) : [],
+        name, year, ok: rows.length > 0, status: r.status, ms: Date.now() - started,
+        rows: rows.length,
+        fields: rows[0] ? Object.keys(rows[0]) : [],
       };
     } catch (e) {
-      return {
-        name, ok: false, ms: Date.now() - started,
-        error: e.name === 'TimeoutError' ? `no response within ${ms}ms` : e.message,
-      };
+      return { name, year, ok: false, ms: Date.now() - started,
+        error: e.name === 'TimeoutError' ? `no response within ${ms}ms` : e.message };
     }
   };
 
-  const endpoints = await Promise.all(Object.entries(ENDPOINTS).map(probe));
+  const jobs = [];
+  for (const [name, build] of Object.entries(CANDIDATES)) {
+    for (const y of years) jobs.push(hit(name, build, y));
+  }
+  const all = await Promise.all(jobs);
+
+  // For each endpoint, the most recent year that actually returned rows.
+  const best = {};
+  for (const r of all) {
+    if (!r.ok) continue;
+    if (!best[r.name] || r.year > best[r.name].year) best[r.name] = r;
+  }
+
   res.json({
-    year,
-    working: endpoints.filter((e) => e.ok).map((e) => e.name),
-    failing: endpoints.filter((e) => !e.ok).map((e) => e.name),
-    endpoints,
+    unitid,
+    usable: Object.values(best).map((r) => ({ endpoint: r.name, year: r.year, fields: r.fields })),
+    unusable: Object.keys(CANDIDATES).filter((n) => !best[n]),
+    detail: all,
   });
 });
 
