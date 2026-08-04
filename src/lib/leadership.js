@@ -10,12 +10,61 @@
 
 import { reconcile } from './match.js';
 
-export const FEEDS = [
-  { name: 'Higher Ed Dive',        url: 'https://www.highereddive.com/feeds/news/' },
-  { name: 'Inside Higher Ed',      url: 'https://www.insidehighered.com/rss/feed/ihe' },
-  { name: 'Community College Daily', url: 'https://www.ccdaily.com/feed/' },
-  { name: 'ACCT',                  url: 'https://www.acct.org/rss.xml' },
+// General news feeds carry only the ~10 most recent articles, so a single pull
+// sees far too little to find leadership moves reliably. Google News search
+// feeds solve that: a targeted query returns a much deeper result set, free and
+// without a key. The general feeds stay as a backstop for anything the queries miss.
+
+const gnews = (q) =>
+  `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`;
+
+// Three layers, in order of how much we trust them.
+//
+// 1. The publications themselves, including their leadership sections. These are
+//    the sources that matter, but a feed only exposes the ~10 newest items.
+// 2. The same publications searched by name, which reaches their archive rather
+//    than just today's front page. Same journalism, deeper window.
+// 3. Open searches, which catch local papers announcing a hire at a college
+//    nobody national has covered. That is often where these stories actually break.
+
+const PUBLICATIONS = [
+  { name: 'Higher Ed Dive',            url: 'https://www.highereddive.com/feeds/news/' },
+  { name: 'Higher Ed Dive · Leadership', url: 'https://www.highereddive.com/feeds/topic/leadership/' },
+  { name: 'Inside Higher Ed',          url: 'https://www.insidehighered.com/rss/feed/ihe' },
+  { name: 'Community College Daily',   url: 'https://www.ccdaily.com/feed/' },
+  { name: 'CC Daily · Leadership',     url: 'https://www.ccdaily.com/category/leadership/feed/' },
+  { name: 'CC Daily · People',         url: 'https://www.ccdaily.com/category/people/feed/' },
+  { name: 'ACCT',                      url: 'https://www.acct.org/rss.xml' },
+  { name: 'ACCT · News',               url: 'https://www.acct.org/news/rss.xml' },
 ];
+
+// Named sources, searched by site so we reach their archives.
+const SITE_SEARCHES = [
+  ['Higher Ed Dive',        'site:highereddive.com'],
+  ['Inside Higher Ed',      'site:insidehighered.com'],
+  ['Community College Daily','site:ccdaily.com'],
+  ['ACCT',                  'site:acct.org'],
+  ['Chronicle',             'site:chronicle.com'],
+].map(([name, site]) => ({
+  name: `${name} · archive`,
+  url: gnews(`${site} (president OR provost OR chancellor OR "chief information officer") (named OR appointed OR interim OR retires OR "steps down")`),
+  search: true,
+}));
+
+// Open searches, for the local coverage the trade press never picks up.
+const OPEN_SEARCHES = [
+  '"community college" "named president"',
+  '"community college" "new president" appointed',
+  '"community college" president "steps down" OR retires OR resigns',
+  '"community college" "presidential search" finalists',
+  '"community college" "interim president"',
+  '"community college" provost named OR appointed',
+  '"community college" "chief information officer" named OR appointed',
+  '"community college" "institutional research" director named',
+  '"technical college" "named president" OR "new president"',
+].map((q) => ({ name: `Open search: ${q.slice(0, 40)}`, url: gnews(q), search: true, open: true }));
+
+export const FEEDS = [...PUBLICATIONS, ...SITE_SEARCHES, ...OPEN_SEARCHES];
 
 // A move is a title plus an event word. Either alone produces noise: "president"
 // appears in half of all higher ed headlines.
@@ -69,8 +118,11 @@ function parseFeed(xml) {
       const m = b.match(/<link[^>]*href=["']([^"']+)["']/i);
       link = m ? m[1] : '';
     }
+    const rawTitle = tag(b, 'title');
     return {
-      title: tag(b, 'title'),
+      // Google News suffixes every headline with " - Publisher"
+      title: rawTitle.replace(/\s+-\s+[^-]{2,40}$/, '').trim(),
+      publisher: (rawTitle.match(/\s+-\s+([^-]{2,40})$/) || [])[1] || null,
       link,
       summary: tag(b, 'description') || tag(b, 'summary') || tag(b, 'content'),
       published: tag(b, 'pubDate') || tag(b, 'published') || tag(b, 'updated'),
@@ -104,7 +156,13 @@ async function readFeed(feed, ms = 15000) {
 }
 
 export async function ingest({ orgs = [], days = 120, aliases = {} } = {}) {
-  const sources = await Promise.all(FEEDS.map((f) => readFeed(f)));
+  // Batched rather than all at once: thirteen simultaneous fetches is enough to
+  // trip rate limits and enough concurrency to matter on a small container.
+  const sources = [];
+  const BATCH = Number(process.env.FEED_BATCH || 4);
+  for (let i = 0; i < FEEDS.length; i += BATCH) {
+    sources.push(...await Promise.all(FEEDS.slice(i, i + BATCH).map((f) => readFeed(f))));
+  }
   const cutoff = Date.now() - days * 86400000;
   const seen = new Set();
   const moves = [];
@@ -120,7 +178,9 @@ export async function ingest({ orgs = [], days = 120, aliases = {} } = {}) {
       if (!flag.isMove) continue;
       seen.add(key);
       moves.push({
-        source: src.name,
+        source: item.publisher || src.name,
+        via: src.name,
+        layer: src.open ? 'open search' : (src.search ? 'named source archive' : 'publication feed'),
         title: item.title,
         link: item.link,
         summary: item.summary.slice(0, 400),
