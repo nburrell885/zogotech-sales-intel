@@ -9,6 +9,9 @@
     ['/arr-pipeline.html',    'Pipeline',        'Open and won'],
     ['/arr-touched.html',     'Last Week',       'ARR touched'],
     ['/leads-by-ae.html',     'Leads',           'Set per week'],
+    ['/rfp.html',             'RFP Bids',        'From RFPSchoolWatch'],
+    ['/ipeds.html',           'IPEDS',           'Institution data'],
+    ['/plans.html',           'Strategic Plans', 'Researched with Claude'],
   ];
 
   // / redirects to the sales dashboard, so treat them as the same tab

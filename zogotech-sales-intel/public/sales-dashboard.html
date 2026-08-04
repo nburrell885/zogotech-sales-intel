@@ -45,6 +45,24 @@
   .grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:20px}
   .grid>.tile{grid-column:span 2;min-width:0}
   .grid>.tile.wide{grid-column:1 / -1;min-height:0}
+  .grid>.tile.full{grid-column:1 / -1;min-height:0}
+  .full .nsplit{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);
+    gap:34px;margin-top:auto;padding-top:22px;align-items:start}
+  .full .nlist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:28px}
+  .nrow{padding:8px 0;border-top:1px solid rgba(255,255,255,0.16);position:relative;cursor:default}
+  .nrow:first-child{border-top:0;padding-top:0}
+  .nc{display:block;font-size:11px;font-weight:700;letter-spacing:0.03em;
+    color:rgba(255,255,255,0.92);margin-bottom:2px}
+  .nc .lvl{font-style:normal;font-size:8.5px;font-weight:700;letter-spacing:0.06em;
+    text-transform:uppercase;color:rgba(255,255,255,0.55);border:1px solid rgba(255,255,255,0.3);
+    border-radius:4px;padding:1px 5px;margin-left:7px;vertical-align:middle}
+  .nq{display:block;font-size:11.5px;color:rgba(255,255,255,0.72);line-height:1.45;
+    overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .nrow:hover .nq,.nrow:focus-within .nq{color:#fff}
+  .nrow .segtip{left:auto;right:0;transform:translate(0,5px)}
+  .nrow:hover .segtip,.nrow:focus-within .segtip{opacity:1;transform:translate(0,0)}
+  @media(max-width:900px){.full .nsplit{grid-template-columns:minmax(0,1fr);gap:22px}
+    .full .nlist{grid-template-columns:minmax(0,1fr)}}
   /* the split layout the wide card needs; it was only ever defined on the exec board */
   .wide .split{display:grid;grid-template-columns:1fr 1fr;gap:34px;margin-top:auto;padding-top:20px}
   .wide .splab{font-size:9.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
@@ -695,6 +713,60 @@ const DRIFT=[
  {col:'Harrisburg Area Community College',was:250000,now:110000}
 ];
 
+// latest update per open account. The deal note wins where one exists, otherwise the
+// most recent note on the organisation or its contacts, since most notes hang off the org.
+const NOTES=[
+ {col:'Mott Community College',o:'R',arr:93000,tcv:340975,d:'2026-07-28',lvl:'account',src:'Meeting note',
+  txt:'Touchbase on presidential and board reporting.',
+  more:'A 29-minute discovery call. Nothing is booked on the deal afterwards.'},
+ {col:'Houston City College',o:'C',arr:194000,tcv:250000,d:'2026-07-28',lvl:'deal',src:'Marlon Anderson, HCCS',
+  txt:'If it is not funded through the grant, we will pursue internal funding options.',
+  more:'Confirms intent either way, but the timing hangs on the grant decision. Largest open deal in the book.'},
+ {col:'Northwest Arkansas Community College',o:'R',arr:71500,tcv:264125,d:'2026-07-28',lvl:'account',src:'Meeting note',
+  txt:'ZogoTech touchbase, 17 minutes.',
+  more:'A demo was booked off this call for 7 August at 15:00.'},
+ {col:'Roane State Community College',o:'C',arr:53500,tcv:204500,d:'2026-07-23',lvl:'deal',src:'Demo notes',
+  txt:'SIS, LMS and CRM lack consistent integration, causing unreliable reports.',
+  more:'Data integration gaps are the stated pain, alongside risk concerns about an AI project.'},
+ {col:'Harrisburg Area Community College',o:'C',arr:70000,tcv:110000,d:'2026-07-15',lvl:'deal',src:'Tim Barshinger, HACC',
+  txt:'Still working on it, no updates at present, but we are hoping to hear soon.',
+  more:'Closest expected close in the book at 31 August, and the contract value was cut from $250,000 to $110,000 last week.'},
+ {col:'Vernon College',o:'C',arr:9500,tcv:28500,d:'2026-07-02',lvl:'account',src:'Internal',
+  txt:'AT assigned.',
+  more:'The only note on the account, and the deal still has no expected close date, so it sits outside every quarterly view.'},
+ {col:'County College of Morris',o:'C',arr:71500,tcv:264125,d:'2026-06-26',lvl:'deal',src:'Office of the President',
+  txt:'We are currently working on the state budget. Once that is completed, we will be in touch.',
+  more:'Waiting on the New Jersey state budget, with no date attached. Still carries a 50% probability against a 1 March close.'},
+ {col:'Motlow State Community College',o:'C',arr:53500,tcv:204500,d:'2026-06-23',lvl:'account',src:'Demo held',
+  txt:'ZogoTech demo delivered.',
+  more:'A follow-up meeting is booked for 10 August at 15:00.'},
+ {col:'Southwestern College',o:'R',arr:93000,tcv:250000,d:'2026-06-17',lvl:'account',src:'Demo held',
+  txt:'Pathways Analytics demo delivered.',
+  more:'A check-in task was due 4 August. Lowest probability in the book at 10%.'},
+ {col:'Tallahassee Community College',o:'C',arr:107500,tcv:250000,d:'2026-06-16',lvl:'deal',src:'TCC',
+  txt:'The board approved our budget, but it is grim, so we will not be purchasing new software with general funds.',
+  more:'Looking at Perkins dollars as an alternative. Still carries a 50% probability against a January 2027 close.'},
+ {col:'Missouri Western State University',o:'R',arr:93000,tcv:340975,d:'2026-06-15',lvl:'deal',src:'Demo held',
+  txt:'ZogoTech demo delivered to a group from the university.',
+  more:'Expected close 1 December at 50%. The record was edited this morning.'},
+ {col:'City College of San Francisco',o:'R',arr:93000,tcv:250000,d:'2026-06-15',lvl:'account',src:'Demo held',
+  txt:'Hands-on demo delivered.',
+  more:'Touchbase meeting held 29 July, but nothing is booked after it.'},
+ {col:'Kansas Association of Community Colleges',o:'R',arr:0,tcv:0,d:'2026-06-11',lvl:'account',src:'Meeting note',
+  txt:'Association-level conversation held.',
+  more:'No ARR has ever been set on this deal, so it contributes nothing to the forecast.'},
+ {col:'George C Wallace State CC \u2013 Hanceville',o:'C',arr:71500,tcv:264125,d:'2026-06-09',lvl:'deal',src:'Internal assessment',
+  txt:'The challenge is that they are already a highly successful institution, Aspen Top 10, with record enrollment growth.',
+  more:'An honest internal read on why this one is hard: they may not have the problem the product solves. Probability sits at 20%.'},
+ {col:'Highland Community College (KS)',o:'R',arr:86000,tcv:382625,d:'2026-06-05',lvl:'deal',src:'Title III call, 46 min',
+  txt:'Title III conversation covering the grant timeline.',
+  more:'The Title III award date lands on 30 September, which is what the 1 October close date is built around.'},
+ {col:'Fayetteville Technical Community College',o:'C',arr:93000,tcv:340975,d:'2026-05-28',lvl:'deal',src:'Internal assessment',
+  txt:'May be stalling because the system office is implementing a Banner data warehouse for all NC community colleges.',
+  more:'Banner is promoting a president dashboard alongside it. A competitive threat sitting at the system level rather than the college level, which would affect every North Carolina account.'}
+];
+const NOTED=NOTES.length;
+
 let metric='arr';
 const mv=x=>(metric==='tcv'?x.tcv:x.arr)||0;
 const money=n=>'$'+Math.round(n).toLocaleString('en-US');
@@ -725,7 +797,7 @@ const meters=rows=>'<div class="meters">'+rows.map(r=>
   '<div class="meter" tabindex="0"><span class="bar"><i class="'+(r[2]||'')+'" style="width:'+
   Math.max(r[1],3)+'%"></i></span><span class="ml">'+r[0]+'</span>'+(r[3]||'')+'</div>').join('')+'</div>';
 function card(t){
-  return '<a class="tile'+(t.wide?' wide':'')+'" href="'+t.url+'"'+
+  return '<a class="tile'+(t.wide?' wide':'')+(t.full?' full':'')+'" href="'+t.url+'"'+
     (t.blank?' target="_blank" rel="noopener"':'')+' style="--fill:'+t.fill+';--glow:'+t.glow+'">'+
     '<span class="glow"></span>'+
     '<div class="top"><span class="tlabel">'+t.label+'</span><span class="arrow">&#8599;</span></div>'+
@@ -922,7 +994,33 @@ function render(){
       '</div>';
   })();
 
-  document.getElementById('tiles').innerHTML=chgTile+tiles.map(card).join('');
+  const notesCard=card({full:true,label:'Open Accounts &middot; Latest Note',url:'https://app.pipedrive.com/pipeline/2',blank:true,
+    big:NOTED+'<small> of '+OPEN.length+'</small>',
+    cap:'Open accounts with a written update &middot; the deal note where there is one, otherwise the most recent note on the account &middot; 9 deal-level, 7 account-level',
+    fill:'linear-gradient(140deg,#4A82AC,#1D5488)',glow:'rgba(29,84,136,0.5)',
+    viz:'<div class="nsplit">'+
+      '<div><div class="splab">Notes on file</div>'+
+        meters([[NOTED+' of '+OPEN.length+' accounts',Math.round(NOTED/OPEN.length*100),'',
+          segTip('Most recent note by account',
+            NOTES.map(n=>[n.col,money(mv(n)),n.d.slice(8)+' '+
+              ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+n.d.slice(5,7)-1]]),
+            'The other '+(OPEN.length-NOTED)+' open accounts have nothing written against them anywhere, '+
+            'including Wyoming CCC at $321,000 and Los Angeles CCD at $188,000.')]])+
+      '</div>'+
+      '<div><div class="splab">Most recent</div><div class="nlist">'+
+        NOTES.slice(0,6).map(n=>
+          '<div class="nrow" tabindex="0"><span class="nc">'+esc(n.col)+
+          '<i class="lvl">'+n.lvl+'</i></span>'+
+          '<span class="nq">'+n.txt+'</span>'+
+          segTip(n.col+' &middot; '+money(mv(n)),
+            [['Note added',n.d],['Attached to',n.lvl],['Source',n.src],['Owner',AE[n.o]]],
+            '&ldquo;'+n.txt+'&rdquo; '+n.more)+'</div>').join('')+
+      '</div></div></div>',
+    // no card-level panel here: on a full-width card it covered its own content,
+    // and every row already has its own
+    });
+
+  document.getElementById('tiles').innerHTML=chgTile+notesCard+tiles.map(card).join('');
 
   // day columns
   const maxD=Math.max(...days.map(d=>CHG.filter(c=>c.d===d).reduce((a,c)=>a+mv(c),0)),1);

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IPEDS · ZogoTech</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#123B63;--navy-2:#1D5488;--sky:#3E9BD6;--sky-2:#5B93C4;--sky-wash:#E8F2FA;
+    --orange:#F2872E;--orange-deep:#D66A16;--paper:#FBFCFE;--card:#FFFFFF;--ink:#0F2438;
+    --ink-2:#4A6076;--ink-3:#8AA0B4;--rule:#DCE7F1;--rule-2:#EDF3F9;--miss:#C25A3A;--good:#2E7D6B}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(1200px 480px at 85% -12%,var(--sky-wash) 0%,transparent 58%),var(--paper);
+    color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.55;
+    padding:40px 22px 72px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto}
+  .kicker{display:inline-flex;align-items:center;gap:9px;font-size:10.5px;font-weight:600;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--navy-2);margin-bottom:13px}
+  .kicker .dot{width:7px;height:7px;border-radius:50%;background:var(--orange);
+    box-shadow:0 0 0 3px rgba(242,135,46,.18)}
+  h1{font-family:'Sora',system-ui,sans-serif;font-weight:700;font-size:42px;line-height:1.1;
+    letter-spacing:-.008em;color:var(--navy)}
+  h1 em{font-style:normal;color:var(--orange-deep)}
+  .sub{display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-top:14px;padding-top:14px;
+    border-top:2px solid var(--navy)}
+  .sub .lede{font-size:14px;color:var(--ink-2);max-width:66ch}
+  .sub .stamp{margin-left:auto;font-size:11px;color:var(--ink-3);white-space:nowrap;
+    background:var(--sky-wash);padding:5px 11px;border-radius:20px}
+  .sec{display:flex;align-items:center;gap:11px;margin:38px 0 6px;flex-wrap:wrap}
+  .sec h2{font-family:'Sora',system-ui,sans-serif;font-size:14px;font-weight:600;
+    letter-spacing:.09em;text-transform:uppercase;color:var(--navy)}
+  .sec .oline{width:16px;height:2px;background:var(--orange)}
+  .sec .line{flex:1;height:1px;background:var(--rule);min-width:20px}
+  .secsub{font-size:12.5px;color:var(--ink-3);margin:0 0 16px 26px;max-width:84ch;line-height:1.55}
+  .strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:16px;margin:24px 0 0}
+  .cell{border-radius:18px;padding:22px;position:relative;overflow:hidden;background:var(--fill,var(--navy));
+    box-shadow:0 16px 34px -20px var(--glow,rgba(18,59,99,.5))}
+  .cell::after{content:'';position:absolute;right:-52px;top:-52px;width:172px;height:172px;
+    border-radius:50%;background:rgba(255,255,255,.13)}
+  .cell::before{content:'';position:absolute;left:-46px;bottom:-64px;width:146px;height:146px;
+    border-radius:50%;background:rgba(255,255,255,.08)}
+  .cell>*{position:relative;z-index:1}
+  .cell .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.85);
+    margin-bottom:12px;font-weight:600}
+  .cell .v{font-family:'Space Grotesk',sans-serif;font-size:31px;font-weight:700;color:#fff;
+    line-height:1;letter-spacing:-.02em}
+  .cell .v small{font-size:16px;color:rgba(255,255,255,.7);font-weight:600}
+  .cell .cap{font-size:11px;color:rgba(255,255,255,.78);margin-top:11px;line-height:1.45}
+  .panel{background:var(--card);border:1px solid var(--rule);border-radius:18px;padding:24px;
+    margin-bottom:20px;box-shadow:0 1px 2px rgba(18,59,99,.04),0 18px 40px -26px rgba(18,59,99,.22)}
+  .row{display:grid;gap:16px;align-items:center;padding:13px 0;border-bottom:1px solid var(--rule-2)}
+  .row:last-child{border-bottom:0}
+  .row>*{min-width:0}
+  .nm{font-weight:600;color:var(--navy);font-size:13.5px}
+  .who{font-size:11.5px;color:var(--ink-3);font-weight:500;margin-top:2px}
+  .amt{font-family:'Space Grotesk',sans-serif;font-size:13.5px;font-weight:700;color:var(--navy);
+    text-align:right;justify-self:end;white-space:nowrap}
+  .chip{display:inline-block;max-width:100%;font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;
+    font-weight:700;padding:3px 9px;border-radius:5px;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;vertical-align:middle}
+  .chip.good{background:rgba(46,125,107,.14);color:var(--good)}
+  .chip.warn{background:rgba(242,135,46,.16);color:var(--orange-deep)}
+  .chip.info{background:rgba(62,155,214,.16);color:var(--navy-2)}
+  .chip.dim{background:rgba(138,160,180,.2);color:var(--ink-2)}
+  a.go{color:var(--orange-deep);font-weight:700;text-decoration:none;font-size:11.5px;white-space:nowrap}
+  a.go:hover{text-decoration:underline}
+  button{font-family:'Inter';font-size:13px;font-weight:600;border:0;border-radius:10px;
+    padding:11px 20px;cursor:pointer;background:var(--navy);color:#fff}
+  button:hover{background:#0d2c4b}
+  button[disabled]{opacity:.55;cursor:default}
+  textarea,input[type=search]{font-family:'Inter';font-size:13px;width:100%;padding:12px 14px;
+    border:1px solid var(--rule);border-radius:11px;background:var(--paper);color:var(--ink)}
+  textarea{min-height:120px;resize:vertical;line-height:1.6}
+  .empty{padding:30px 4px;color:var(--ink-3);font-size:13px;text-align:center}
+  .note{display:flex;gap:14px;background:var(--sky-wash);border:1px solid var(--rule);
+    border-radius:16px;padding:18px 22px;font-size:13px;color:var(--ink-2);margin:30px 0;line-height:1.6}
+  .note .mark{flex:none;width:4px;border-radius:3px;background:var(--orange)}
+  .note b{color:var(--navy);font-weight:600}
+  .foot{font-size:10.5px;color:var(--ink-3);text-align:center;padding-top:24px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker"><span class="dot"></span> ZogoTech Sales &middot; IPEDS enrichment</div>
+  <h1>Institution <em>Data</em></h1>
+  <div class="sub"><div class="lede">Your Pipedrive accounts matched to IPEDS, the federal dataset covering every college in the country. Free, public, and updated annually by the Department of Education.</div><span class="stamp" id="stamp">loading</span></div>
+
+  <div class="strip" id="strip"></div>
+
+  <div class="sec"><span class="oline"></span><h2>Matched Accounts</h2><span class="line"></span></div>
+  <div class="secsub">Every Pipedrive organisation confidently matched to an IPEDS unit ID. Matching is by name, so anything uncertain goes to the review list below rather than being guessed at.</div>
+  <div class="panel" style="padding:14px 24px 8px">
+    <input type="search" id="q" placeholder="Filter by institution name">
+  </div>
+  <div class="panel" id="list"></div>
+
+  <div class="sec"><span class="oline"></span><h2>Needs a Human</h2><span class="line"></span></div>
+  <div class="secsub">Names that nearly matched but not confidently enough to accept. Three systems spell the same college three ways, and a wrong match is worse than none.</div>
+  <div class="panel" id="review"></div>
+  <div class="foot" id="foot"></div>
+</div>
+<script src="/nav.js"></script>
+<script>
+var el=function(i){return document.getElementById(i)};
+var M=[],R=[];
+var esc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;')};
+function card(k,v,c,f,g){return '<div class="cell" style="--fill:linear-gradient(155deg,'+f+'dd,'+f+');--glow:'+g+'">'
+  +'<div class="k">'+k+'</div><div class="v">'+v+'</div><div class="cap">'+c+'</div></div>'}
+
+function paint(){
+  var q=(el('q').value||'').toLowerCase().trim();
+  var rows=M.filter(function(m){return !q||(m.orgName+' '+(m.ipedsName||'')).toLowerCase().indexOf(q)>-1});
+  el('list').innerHTML = rows.length ? rows.slice(0,200).map(function(m){
+    return '<div class="row" style="grid-template-columns:minmax(0,1fr) auto 110px">'
+      +'<div><div class="nm">'+esc(m.orgName)+'</div>'
+      +'<div class="who">IPEDS: '+esc(m.ipedsName||'')+'</div></div>'
+      +'<div><span class="chip '+(m.score>=0.99?'good':'info')+'">'+Math.round(m.score*100)+'% match</span></div>'
+      +'<div class="amt" style="font-size:12px">'+m.unitid+'</div></div>';
+  }).join('')+(rows.length>200?'<div class="empty">Showing the first 200 of '+rows.length+'.</div>':'')
+    : '<div class="empty">'+(M.length?'Nothing matches that filter.':'No matches yet. Run a refresh.')+'</div>';
+}
+
+fetch('/api/data').then(function(r){return r.json()}).then(function(d){
+  var ip=d.ipeds||{};
+  M=ip.matched||[]; R=ip.review||[];
+  el('stamp').textContent=d.pulledAt?'Pulled '+new Date(d.pulledAt).toLocaleString():'No data yet';
+  el('strip').innerHTML=[
+    card('Matched',M.length,'Pipedrive accounts tied to an IPEDS unit ID','#1D5488','rgba(29,84,136,.5)'),
+    card('Need Review',R.length,'Close but not confident enough to accept','#F2872E','rgba(242,135,46,.5)'),
+    card('Universe',(ip.universe||0).toLocaleString(),'Two-year institutions in IPEDS for '+(ip.year||''),'#3E9BD6','rgba(62,155,214,.5)'),
+    card('Data Year',ip.year||'\u2014','Set with IPEDS_YEAR','#5B93C4','rgba(91,147,196,.5)')
+  ].join('');
+  el('review').innerHTML = R.length ? R.slice(0,80).map(function(r){
+    return '<div class="row" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr) 96px">'
+      +'<div><div class="nm">'+esc(r.orgName)+'</div><div class="who">in Pipedrive</div></div>'
+      +'<div><div class="nm" style="color:var(--ink-2)">'+esc(r.candidate||'no candidate')+'</div>'
+      +'<div class="who">closest IPEDS name</div></div>'
+      +'<div><span class="chip warn">'+Math.round((r.score||0)*100)+'%</span></div></div>';
+  }).join('') : '<div class="empty">Nothing waiting. Every account matched cleanly or not at all.</div>';
+  el('foot').textContent = ip.attribution ||
+    'Integrated Postsecondary Education Data System, Education Data Portal, Urban Institute, made available under the ODC Attribution License.';
+  paint();
+}).catch(function(){el('list').innerHTML='<div class="empty">Could not load data.</div>'});
+
+el('q').addEventListener('input',paint);
+</script>
+</body>
+</html>

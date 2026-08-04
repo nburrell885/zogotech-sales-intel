@@ -553,7 +553,7 @@ const meters=rows=>'<div class="meters">'+rows.map(r=>
   Math.max(r[1],3)+'%"></i></span><span class="ml">'+r[0]+'</span>'+(r[3]||'')+'</div>').join('')+'</div>';
 
 function card(t){
-  return '<a class="tile'+(t.wide?' wide':'')+'" href="'+t.url+'"'+(t.blank?' target="_blank" rel="noopener"':'')+
+  return '<a class="tile'+(t.wide?' wide':'')+(t.full?' full':'')+'" href="'+t.url+'"'+(t.blank?' target="_blank" rel="noopener"':'')+
     ' style="--fill:'+t.fill+';--glow:'+t.glow+'">'+
     '<span class="glow"></span>'+
     '<div class="top"><span class="tlabel">'+t.label+'</span><span class="arrow">&#8599;</span></div>'+
@@ -713,11 +713,11 @@ function build(){
        'Live conversations: a Morton College meeting on 4 Aug, the NWACC demo on 7 Aug, and Motlow on 10 Aug. Everything else is a task or a deadline.')},
   ];
 
-  const notesCard=card({wide:true,label:'Open Accounts &middot; Latest Note',url:PD+'/pipeline/2',blank:true,
+  const notesCard=card({full:true,label:'Open Accounts &middot; Latest Note',url:PD+'/pipeline/2',blank:true,
     big:NOTED+'<small> of '+OPEN.length+'</small>',
     cap:'Open accounts with a written update &middot; the deal note where there is one, otherwise the most recent note on the account &middot; 9 deal-level, 7 account-level',
     fill:'linear-gradient(140deg,#4A82AC,#1D5488)',glow:'rgba(29,84,136,0.5)',
-    viz:'<div class="split">'+
+    viz:'<div class="nsplit">'+
       '<div><div class="splab">Notes on file</div>'+
         meters([[NOTED+' of '+OPEN.length+' accounts',Math.round(NOTED/OPEN.length*100),'',
           segTip('Most recent note by account',
@@ -727,7 +727,7 @@ function build(){
             'including Wyoming CCC at $321,000 and Los Angeles CCD at $188,000.')]])+
       '</div>'+
       '<div><div class="splab">Most recent</div><div class="nlist">'+
-        NOTES.slice(0,4).map(n=>
+        NOTES.slice(0,6).map(n=>
           '<div class="nrow" tabindex="0"><span class="nc">'+esc(n.col)+
           '<i class="lvl">'+n.lvl+'</i></span>'+
           '<span class="nq">'+n.txt+'</span>'+
@@ -735,8 +735,9 @@ function build(){
             [['Note added',n.d],['Attached to',n.lvl],['Source',n.src],['Owner',AE[n.o]]],
             '&ldquo;'+n.txt+'&rdquo; '+n.more)+'</div>').join('')+
       '</div></div></div>',
-    tip:tip('Latest note by account',NOTES.map(n=>[n.col,money(mv(n)),n.d]),
-      'Most notes sit on the account rather than the deal, so this rolls up all three. Read Fayetteville and Tallahassee first.')});
+    // no card-level panel here: on a full-width card it covered its own content,
+    // and every row already has its own
+    });
 
   const live=[
     {label:'Pipeline by Stage',url:PD+'/pipeline/2',blank:true,big:'29<small> deals</small>',
