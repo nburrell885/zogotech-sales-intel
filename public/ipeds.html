@@ -181,12 +181,23 @@ fetch('/api/data').then(function(r){return r.json()}).then(function(d){
   el('low').innerHTML = low.length ? low.map(function(m){
     return '<div class="row" style="grid-template-columns:minmax(0,1fr) auto 96px">'
       +'<div><div class="nm">'+esc(m.orgName)+'</div>'
-      +'<div class="who">IPEDS '+m.unitid+(m.gradMethod?' &middot; from '+esc(m.gradMethod):'')+'</div></div>'
+      +'<div class="who">IPEDS '+m.unitid+(m.gradMethod?' &middot; '+esc(m.gradMethod):'')
+        +(m.gradWindow?' &middot; '+esc(String(m.gradWindow))+'-year cohort':'')+'</div></div>'
       +'<div><span class="chip '+(m.gradRate<25?'warn':'info')+'">'+m.gradRate+'% graduation</span></div>'
       +'<div class="amt" style="font-size:12px">'+(m.gradRate<25?'severe':'below')+'</div></div>';
   }).join('') : '<div class="empty">'+(withRate.length
       ? 'No matched account falls below '+LOW+'%.'
-      : 'No graduation rates resolved yet. Check /api/probe/ipeds to confirm the grad-rates endpoint is responding.')+'</div>';
+      : (function(){
+          var t=(ip.discovery&&ip.discovery.tried)||[];
+          var withFields=t.filter(function(x){return x.fields&&x.fields.length});
+          if(ip.completionEndpoint) return 'Rates came from '+esc(ip.completionEndpoint)
+            +' for '+ip.completionYear+' but none resolved.';
+          if(withFields.length) return 'No endpoint produced a usable rate. The columns returned were: '
+            +esc(withFields[0].fields.join(', '))+'. Send that list and the right field can be named.';
+          return 'No graduation endpoint responded. Tried: '
+            +esc(t.map(function(x){return x.endpoint+' '+x.year
+              +' ('+(x.error||x.status||(x.rows+' rows'))+')'}).slice(0,6).join(', ')||'nothing');
+        })())+'</div>';
   el('stamp').textContent=d.pulledAt?'Pulled '+new Date(d.pulledAt).toLocaleString():'No data yet';
   el('strip').innerHTML=[
     card('Matched',M.length,'Pipedrive accounts tied to an IPEDS unit ID','#1D5488','rgba(29,84,136,.5)'),
