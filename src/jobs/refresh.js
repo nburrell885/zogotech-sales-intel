@@ -8,6 +8,7 @@ import { communityColleges, directoryFor, metricsFor, completionByUnit,
 import { reconcile } from '../lib/match.js';
 import { ingest } from '../lib/rfp.js';
 import { ingest as ingestLeadership } from '../lib/leadership.js';
+import { ingest as ingestGrants } from '../lib/grants.js';
 import { read, write } from '../lib/store.js';
 
 const IPEDS_YEAR = Number(process.env.IPEDS_YEAR || 2022);
@@ -220,6 +221,27 @@ export async function refresh({ includeRfp = true, includeIpeds = true } = {}) {
     errors.push(`Leadership: ${e.message}`);
   }
 
+  // ---- Title III and Title V grant awards ---------------------------------
+  let grants = await read('grants', { awards: [] });
+  try {
+    const aliases = (await read('aliases', {})) || {};
+    delete aliases._comment;
+    const fresh = await ingestGrants({
+      orgs: pd.orgs.map((o) => ({ id: o.id, name: o.name })),
+      aliases,
+      years: Number(process.env.GRANT_YEARS || 4),
+    });
+    const prior = new Map((grants.awards || []).map((a) => [a.internalId || a.awardId, a]));
+    for (const a of fresh.awards) {
+      const own = a.orgId ? orgOwner.get(a.orgId) : null;
+      const k = a.internalId || a.awardId;
+      prior.set(k, { ...prior.get(k), ...a, owner: own?.owner ?? null });
+    }
+    grants = { ...fresh, awards: [...prior.values()] };
+  } catch (e) {
+    errors.push(`Grants: ${e.message}`);
+  }
+
   const data = {
     pulledAt: new Date().toISOString(),
     tookMs: Date.now() - started,
@@ -248,16 +270,19 @@ export async function refresh({ includeRfp = true, includeIpeds = true } = {}) {
     ipeds,
     rfp,
     leadership,
+    grants,
   };
 
   await write('snapshot', data);
   await write('rfp', rfp);
   await write('leadership', leadership);
+  await write('grants', grants);
   return { pulledAt: data.pulledAt, tookMs: data.tookMs, errors, counts: {
     open: deals.open.length, won: deals.won.length, lost: deals.lost.length,
     leads: (pd.leads || []).length, notes: data.notes.length,
     bids: (rfp.bids || []).length, ipedsMatched: ipeds.matched.length,
     leadershipMoves: (leadership.moves || []).length,
+    grantAwards: (grants.awards || []).length,
   } };
 }
 
