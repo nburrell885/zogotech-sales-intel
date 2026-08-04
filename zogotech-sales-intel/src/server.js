@@ -10,6 +10,10 @@ import { ENDPOINTS } from './lib/ipeds.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(express.json());
+// The landing page is the sales dashboard, not an index. Redirecting rather
+// than serving it at / keeps one canonical URL per report.
+app.get('/', (_req, res) => res.redirect(302, '/sales-dashboard.html'));
+
 app.use(express.static(path.join(__dirname, '..', 'public'), {
   setHeaders(res, p) {
     // Reports and scripts change on every deploy; never let a browser hold an old copy.
@@ -17,7 +21,23 @@ app.use(express.static(path.join(__dirname, '..', 'public'), {
   },
 }));
 
-let running = null;   // one refresh at a time; a second caller joins the first
+let running = null;      // one refresh at a time; a second caller joins the first
+let lastRun = 0;         // ms timestamp of the last completed refresh
+
+// How often the app refreshes itself, and how often a person is allowed to
+// force one from the page. The team button is rate limited rather than
+// token guarded, so anyone can click it and nobody can hammer Pipedrive.
+const EVERY_MIN = Number(process.env.REFRESH_EVERY_MINUTES || 60);
+const MIN_GAP_MIN = Number(process.env.REFRESH_MIN_GAP_MINUTES || 10);
+
+async function runRefresh(opts = {}) {
+  if (!running) {
+    running = refresh(opts)
+      .then((r) => { lastRun = Date.now(); return r; })
+      .finally(() => { running = null; });
+  }
+  return running;
+}
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, at: new Date().toISOString() }));
 
@@ -56,7 +76,8 @@ app.get('/api/status', async (_req, res) => {
   res.json({
     pulledAt: data?.pulledAt ?? null,
     refreshing: !!running,
-    tokenRequired: !!(process.env.REFRESH_TOKEN || '').trim(),
+    autoRefreshMinutes: EVERY_MIN,
+    minGapMinutes: MIN_GAP_MIN,
     pipedriveConfigured: !!process.env.PIPEDRIVE_API_TOKEN,
     googleConfigured: !!process.env.GOOGLE_REFRESH_TOKEN,
     counts: data ? {
@@ -75,20 +96,27 @@ app.post('/api/refresh', async (req, res) => {
   const clean = (v) => String(v ?? '').trim().replace(/^["']|["']$/g, '');
   const expected = clean(process.env.REFRESH_TOKEN);
   const given = clean(req.get('x-refresh-token') || req.body?.token);
-  if (expected && given !== expected) {
-    return res.status(401).json({
-      error: 'Bad refresh token',
-      hint: given
-        ? `Received a token of ${given.length} characters; the server expects ${expected.length}.`
-        : 'No token reached the server. The page may be running an older version, so hard reload it.',
+  const force = req.query.force === '1' || req.body?.force === true;
+
+  // Forcing past the rate limit is the only thing that needs the token.
+  if (force && expected && given !== expected) {
+    return res.status(401).json({ error: 'Bad refresh token', hint: 'Forcing a refresh needs the token.' });
+  }
+
+  const sinceMin = (Date.now() - lastRun) / 60000;
+  if (!force && lastRun && sinceMin < MIN_GAP_MIN) {
+    const data = await read('snapshot');
+    return res.json({
+      skipped: true,
+      reason: `Data was refreshed ${Math.round(sinceMin)} minute(s) ago. ` +
+              `It refreshes on its own every ${EVERY_MIN} minutes.`,
+      pulledAt: data?.pulledAt ?? null,
+      nextAllowedInMinutes: Math.ceil(MIN_GAP_MIN - sinceMin),
     });
   }
 
-  if (!running) {
-    running = refresh(req.body || {}).finally(() => { running = null; });
-  }
   try {
-    res.json(await running);
+    res.json(await runRefresh(req.body || {}));
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -183,4 +211,24 @@ function page(title, body) {
 }
 
 const port = Number(process.env.PORT || 3000);
-app.listen(port, () => console.log(`ZogoTech sales intel listening on ${port}`));
+app.listen(port, async () => {
+  console.log(`ZogoTech sales intel listening on ${port}`);
+
+  // Refresh on its own so nobody has to remember to click anything. Kept inside
+  // the app rather than as a platform cron, so it moves with the code.
+  if (EVERY_MIN > 0) {
+    const tick = () => runRefresh()
+      .then((r) => console.log('scheduled refresh done', r?.pulledAt ?? ''))
+      .catch((e) => console.error('scheduled refresh failed:', e.message));
+
+    const existing = await read('snapshot');
+    if (!existing) {
+      console.log('no snapshot on disk, pulling one now');
+      setTimeout(tick, 5000);          // let the app finish booting first
+    } else {
+      lastRun = Date.parse(existing.pulledAt) || 0;
+    }
+    setInterval(tick, EVERY_MIN * 60 * 1000);
+    console.log(`auto refresh every ${EVERY_MIN} minutes`);
+  }
+});
