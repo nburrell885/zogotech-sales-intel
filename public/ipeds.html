@@ -37,10 +37,10 @@
   .strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:16px;margin:24px 0 0}
   .cell{border-radius:18px;padding:22px;position:relative;overflow:hidden;background:var(--fill,var(--navy));
     box-shadow:0 16px 34px -20px var(--glow,rgba(18,59,99,.5))}
-  .cell::after{content:'';position:absolute;right:-52px;top:-52px;width:172px;height:172px;
-    border-radius:50%;background:rgba(255,255,255,.13)}
-  .cell::before{content:'';position:absolute;left:-46px;bottom:-64px;width:146px;height:146px;
-    border-radius:50%;background:rgba(255,255,255,.08)}
+  .cell::after{content:'';position:absolute;right:-30px;top:-30px;width:110px;height:110px;
+    border-radius:50%;background:rgba(255,255,255,0.12);pointer-events:none}
+  .cell::before{content:'';position:absolute;left:-26px;bottom:-40px;width:96px;height:96px;
+    border-radius:50%;background:rgba(255,255,255,0.07);pointer-events:none}
   .cell>*{position:relative;z-index:1}
   .cell .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.85);
     margin-bottom:12px;font-weight:600}

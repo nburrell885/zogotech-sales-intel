@@ -59,9 +59,9 @@
     transition:transform .18s cubic-bezier(.2,.7,.3,1),box-shadow .18s}
   .glow{position:absolute;inset:0;border-radius:22px;overflow:hidden;pointer-events:none;z-index:0}
   .glow::after{content:'';position:absolute;right:-70px;top:-70px;width:250px;height:250px;
-    border-radius:50%;background:rgba(255,255,255,0.13)}
+    border-radius:50%;background:rgba(255,255,255,0.12)}
   .glow::before{content:'';position:absolute;left:-64px;bottom:-96px;width:210px;height:210px;
-    border-radius:50%;background:rgba(255,255,255,0.075)}
+    border-radius:50%;background:rgba(255,255,255,0.07)}
   .tile>*{position:relative;z-index:1}
   .tile:hover{transform:translateY(-4px);
     box-shadow:0 12px 24px -8px rgba(18,59,99,0.22),0 34px 62px -26px var(--glow,rgba(18,59,99,0.65))}
@@ -304,8 +304,6 @@ const HYG=[
 ];
 
 const FEEDS=[
- {t:'Title III and Title V grant awards',tag:'now',
-  how:'The Department of Education publishes its grantee lists. These are institutions with new money and a federal mandate tied to student success and institutional capacity. Highland is already a live example, with its close date built around the 30 September award. A quarterly pull would surface the whole cohort rather than the ones we happen to hear about.'},
  {t:'SAM.gov and state procurement portals',tag:'now',
   how:'SAM.gov has a free API for federal opportunities. Most states run their own portal, many with RSS or a published feed. Not a replacement for a paid service, but it covers a real slice at no cost and can be filtered to the same criteria.'},
  {t:'Achieving the Dream and Aspen Prize lists',tag:'soon',
@@ -467,6 +465,16 @@ const FEEDTILES=[
       src.filter(x=>x.ok).length+' of '+src.length+' feeds responding';},
   unit:' moves',
   blank:'No moves found yet. Check /api/probe/feeds.'},
+ {id:'grants',label:'Title III and V Awards',url:'/grants.html',
+  fill:'linear-gradient(155deg,#7A6BB0,#4C3F82)',glow:'rgba(76,63,130,0.5)',
+  count:d=>((d.grants&&d.grants.awards)||[]).length,
+  sub:d=>{const a=(d.grants&&d.grants.awards)||[];
+    const mine=a.filter(x=>x.orgId).length;
+    const yr=new Date(Date.now()-365*86400000).toISOString().slice(0,10);
+    return mine+' at your accounts &middot; '+a.filter(x=>x.start&&x.start>=yr).length+
+      ' started in the last year';},
+  unit:' awards',
+  blank:'No awards yet. Check /api/probe/grants.'},
  {id:'plans',label:'Strategic Plans',url:'/plans.html',
   fill:'linear-gradient(155deg,#6FA6D0,#3E6E95)',glow:'rgba(91,147,196,0.5)',
   count:()=>PLANS.results?PLANS.results.length:0,
