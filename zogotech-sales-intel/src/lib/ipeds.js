@@ -17,10 +17,13 @@ async function get(path, params = {}) {
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
   }
-  const res = await fetch(url, { headers: {
-    Accept: 'application/json',
-    'User-Agent': 'ZogoTech-Sales-Intel/0.1 (+contact: nburrell@zogotech.com)',
-  } });
+  const res = await fetch(url, {
+    signal: AbortSignal.timeout(Number(process.env.IPEDS_TIMEOUT_MS || 20000)),
+    headers: {
+      Accept: 'application/json',
+      'User-Agent': 'ZogoTech-Sales-Intel/0.1 (+contact: nburrell@zogotech.com)',
+    },
+  });
   if (!res.ok) throw new Error(`IPEDS ${path} returned ${res.status}`);
   return res.json();
 }
@@ -31,7 +34,10 @@ async function pageAll(path, params = {}, cap = 40) {
   let body = await get(path, params);
   const out = [...(body.results || [])];
   for (let i = 0; i < cap && body.next; i++) {
-    const res = await fetch(body.next, { headers: { Accept: 'application/json' } });
+    const res = await fetch(body.next, {
+      signal: AbortSignal.timeout(Number(process.env.IPEDS_TIMEOUT_MS || 20000)),
+      headers: { Accept: 'application/json' },
+    });
     if (!res.ok) break;
     body = await res.json();
     out.push(...(body.results || []));
