@@ -78,6 +78,16 @@
     border-radius:16px;padding:18px 22px;font-size:13px;color:var(--ink-2);margin:30px 0;line-height:1.6}
   .note .mark{flex:none;width:4px;border-radius:3px;background:var(--orange)}
   .note b{color:var(--navy);font-weight:600}
+
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .filters input[type=search]{flex:1 1 240px;min-width:190px}
+  .filters select{font-family:'Inter';font-size:13px;padding:12px 14px;border:1px solid var(--rule);
+    border-radius:11px;background:var(--paper);color:var(--ink);cursor:pointer;min-width:160px}
+  .filters select:focus-visible,.filters input:focus-visible{outline:none;border-color:var(--sky);
+    box-shadow:0 0 0 3px rgba(62,155,214,.2)}
+  .filters .ghost{background:transparent;color:var(--ink-2);border:1px solid var(--rule);padding:11px 16px}
+  .filters .ghost:hover{border-color:var(--sky);color:var(--navy)}
+  .hits{font-size:11.5px;color:var(--ink-3);padding:2px 4px 10px}
   .foot{font-size:10.5px;color:var(--ink-3);text-align:center;padding-top:24px;line-height:1.7}
 </style>
 </head>
@@ -92,8 +102,18 @@
   <div class="sec"><span class="oline"></span><h2>Bids</h2><span class="line"></span></div>
   <div class="secsub">Relevant bids first, then everything else. Relevance means higher education plus an analytics, reporting or student success keyword in the title.</div>
   <div class="panel" style="padding:14px 24px 8px">
-    <input type="search" id="q" placeholder="Filter by institution, title, state or bid type">
+    <div class="filters">
+      <input type="search" id="q" placeholder="Filter by institution, title, state or bid type">
+      <select id="ae"><option value="">All account executives</option></select>
+      <select id="scope">
+        <option value="">Every bid</option>
+        <option value="mine">Only my accounts</option>
+        <option value="rel">Only relevant</option>
+      </select>
+      <button id="clear" class="ghost">Clear</button>
+    </div>
   </div>
+  <div class="hits" id="hits"></div>
   <div class="panel" id="list"></div>
   <div class="foot" id="foot"></div>
 </div>
@@ -106,11 +126,30 @@ var esc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/<
 function card(k,v,c,f,g){return '<div class="cell" style="--fill:linear-gradient(155deg,'+f+'dd,'+f+');--glow:'+g+'">'
   +'<div class="k">'+k+'</div><div class="v">'+v+'</div><div class="cap">'+c+'</div></div>'}
 
+// Populate the account-executive dropdown from whatever the page loaded.
+// Only reps who actually appear are listed, each with a count.
+function buildAE(list, get){
+  var counts={}, none=0;
+  (list||[]).forEach(function(x){
+    var o=get(x);
+    if(o) counts[o]=(counts[o]||0)+1; else none++;
+  });
+  var names=Object.keys(counts).sort();
+  el('ae').innerHTML='<option value="">All account executives ('+(list||[]).length+')</option>'
+    +names.map(function(n){return '<option value="'+n+'">'+n+' ('+counts[n]+')</option>'}).join('')
+    +(none?'<option value="__none">No owner ('+none+')</option>':'');
+}
+
 function paint(){
   var q=(el('q').value||'').toLowerCase().trim();
+  var ae=el('ae').value, scope=el('scope').value;
   var rows=BIDS.filter(function(b){
+    if(ae && b.owner!==ae) return false;
+    if(scope==='mine' && !b.pipedriveOrgId) return false;
+    if(scope==='rel' && !b.relevant) return false;
     return !q || (b.institution+' '+b.title+' '+b.state+' '+b.bidType).toLowerCase().indexOf(q)>-1;
   });
+  el('hits').textContent=(q||ae||scope)? rows.length+' of '+BIDS.length+' bids' : BIDS.length+' bids';
   rows.sort(function(a,b){
     if(!!b.relevant-!!a.relevant) return !!b.relevant-!!a.relevant;
     if(!!b.pipedriveOrgId-!!a.pipedriveOrgId) return !!b.pipedriveOrgId-!!a.pipedriveOrgId;
@@ -147,11 +186,32 @@ fetch('/api/data').then(function(r){return r.json()}).then(function(d){
     card('Already an Account',known,'Institution matched in Pipedrive','#F2872E','rgba(242,135,46,.5)'),
     card('Still Open',soon,'Due date has not passed','#3E9BD6','rgba(62,155,214,.5)')
   ].join('');
+  fillSelect('ae','All account executives',BIDS,function(b){return b.owner});
   el('foot').textContent='Source: RFPSchoolWatch daily bid alert, read from Gmail and deduplicated on Doc ID.';
+  buildAE(BIDS, function(b){return b.owner});
   paint();
 }).catch(function(){el('list').innerHTML='<div class="empty">Could not load data.</div>'});
 
+
+// Populate a dropdown from the data, with counts, hiding options nobody has.
+function fillSelect(id, allLabel, rows, valueOf){
+  var counts={};
+  rows.forEach(function(r){
+    var vs=valueOf(r); if(!vs) return;
+    (Array.isArray(vs)?vs:[vs]).forEach(function(v){ if(v) counts[v]=(counts[v]||0)+1; });
+  });
+  var keys=Object.keys(counts).sort(function(a,b){return counts[b]-counts[a]});
+  var el=document.getElementById(id); if(!el) return;
+  var keep=el.value;
+  el.innerHTML='<option value="">'+allLabel+' ('+rows.length+')</option>'
+    +keys.map(function(k){return '<option value="'+k.replace(/"/g,'&quot;')+'">'+k+' ('+counts[k]+')</option>'}).join('');
+  if(keep) el.value=keep;
+}
+
 el('q').addEventListener('input',paint);
+el('ae').addEventListener('change',paint);
+el('scope').addEventListener('change',paint);
+el('clear').addEventListener('click',function(){el('q').value='';el('ae').value='';el('scope').value='';paint();});
 </script>
 </body>
 </html>

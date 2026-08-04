@@ -104,6 +104,7 @@
     <div class="filters">
       <input type="search" id="q" placeholder="Filter by institution, title or source">
       <select id="role"><option value="">All positions</option></select>
+      <select id="ae"><option value="">All account executives</option></select>
       <select id="scope">
         <option value="">Every institution</option>
         <option value="mine">Only my accounts</option>
@@ -156,16 +157,32 @@ function buildRoleOptions(){
     +opts.map(function(r){return '<option value="'+r+'">'+r+' ('+counts[r]+')</option>'}).join('');
 }
 
+// Populate the account-executive dropdown from whatever the page loaded.
+// Only reps who actually appear are listed, each with a count.
+function buildAE(list, get){
+  var counts={}, none=0;
+  (list||[]).forEach(function(x){
+    var o=get(x);
+    if(o) counts[o]=(counts[o]||0)+1; else none++;
+  });
+  var names=Object.keys(counts).sort();
+  el('ae').innerHTML='<option value="">All account executives ('+(list||[]).length+')</option>'
+    +names.map(function(n){return '<option value="'+n+'">'+n+' ('+counts[n]+')</option>'}).join('')
+    +(none?'<option value="__none">No owner ('+none+')</option>':'');
+}
+
 function paint(){
   var q=(el('q').value||'').toLowerCase().trim();
   var role=el('role').value;
+  var ae=el('ae').value;
   var mine=el('scope').value==='mine';
   var rows=MOVES.filter(function(m){
+    if(ae && m.owner!==ae) return false;
     if(mine && !m.orgId) return false;
     if(role && rolesOf(m).indexOf(role)===-1) return false;
     return !q||(m.title+' '+(m.orgName||'')+' '+m.source+' '+(m.titles||[]).join(' ')).toLowerCase().indexOf(q)>-1;
   });
-  el('hits').textContent = (q||role||mine)
+  el('hits').textContent = (q||role||ae||mine)
     ? rows.length+' of '+MOVES.length+' moves'
     : MOVES.length+' moves';
   el('list').innerHTML = rows.length ? rows.map(function(m){
@@ -204,15 +221,34 @@ fetch('/api/data').then(function(r){return r.json()}).then(function(d){
       +'<div class="amt" style="font-size:12px">'+(s.items||0)+' items</div></div>';
   }).join(''):'<div class="empty">No source information yet.</div>';
   buildRoleOptions();
+  fillSelect('ae','All account executives',MOVES,function(m){return m.owner});
   el('foot').textContent='Sources are public higher education news feeds. A headline must name a leadership title and an event to be listed, so passing mentions are excluded.';
+  buildAE(MOVES, function(m){return m.owner});
   paint();
 }).catch(function(){el('list').innerHTML='<div class="empty">Could not load data.</div>'});
 
 el('q').addEventListener('input',paint);
+
+// Populate a dropdown from the data, with counts, hiding options nobody has.
+function fillSelect(id, allLabel, rows, valueOf){
+  var counts={};
+  rows.forEach(function(r){
+    var vs=valueOf(r); if(!vs) return;
+    (Array.isArray(vs)?vs:[vs]).forEach(function(v){ if(v) counts[v]=(counts[v]||0)+1; });
+  });
+  var keys=Object.keys(counts).sort(function(a,b){return counts[b]-counts[a]});
+  var el=document.getElementById(id); if(!el) return;
+  var keep=el.value;
+  el.innerHTML='<option value="">'+allLabel+' ('+rows.length+')</option>'
+    +keys.map(function(k){return '<option value="'+k.replace(/"/g,'&quot;')+'">'+k+' ('+counts[k]+')</option>'}).join('');
+  if(keep) el.value=keep;
+}
+
+el('ae').addEventListener('change',paint);
 el('role').addEventListener('change',paint);
 el('scope').addEventListener('change',paint);
 el('clear').addEventListener('click',function(){
-  el('q').value=''; el('role').value=''; el('scope').value=''; paint();
+  el('q').value=''; el('role').value=''; el('ae').value=''; el('scope').value=''; paint();
 });
 </script>
 </body>

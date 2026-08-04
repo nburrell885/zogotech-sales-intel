@@ -144,6 +144,16 @@
   .tag.soon{background:rgba(62,155,214,0.16);color:var(--navy-2)}
   .tag.hard{background:rgba(242,135,46,0.16);color:var(--orange-deep)}
 
+
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .filters input[type=search]{flex:1 1 240px;min-width:190px}
+  .filters select{font-family:'Inter';font-size:13px;padding:12px 14px;border:1px solid var(--rule);
+    border-radius:11px;background:var(--paper);color:var(--ink);cursor:pointer;min-width:160px}
+  .filters select:focus-visible,.filters input:focus-visible{outline:none;border-color:var(--sky);
+    box-shadow:0 0 0 3px rgba(62,155,214,.2)}
+  .filters .ghost{background:transparent;color:var(--ink-2);border:1px solid var(--rule);padding:11px 16px}
+  .filters .ghost:hover{border-color:var(--sky);color:var(--navy)}
+  .hits{font-size:11.5px;color:var(--ink-3);padding:2px 4px 10px}
   .note{display:flex;gap:14px;background:var(--sky-wash);border:1px solid var(--rule);
     border-radius:16px;padding:18px 22px;font-size:13px;color:var(--ink-2);margin:32px 0;line-height:1.6}
   .note .mark{flex:none;width:4px;border-radius:3px;background:var(--orange)}
@@ -197,6 +207,19 @@
     </div>
   </header>
 
+  <div class="panel" style="padding:14px 24px;margin-bottom:20px">
+    <div class="filters">
+      <select id="fae"><option value="">All account executives</option></select>
+      <select id="ftype">
+        <option value="">All ARR</option>
+        <option value="New Sales">New Sales</option>
+        <option value="Upsells">Upsells</option>
+      </select>
+      <button id="fclear" class="ghost">Clear</button>
+      <span class="hits" id="fhits" style="padding:0"></span>
+    </div>
+  </div>
+
   <div class="grid" id="tiles"></div>
 
   <div class="sec" id="soon"><span class="oline"></span><h2>Closing in the Next 90 Days</h2>
@@ -233,6 +256,10 @@ const TODAY='2026-08-03';
 const AE={C:'Christina Sorrells',R:'Rebecca Hougland'};
 const FIRST={C:'Christina',R:'Rebecca'};
 const PD='https://app.pipedrive.com';
+
+// Filters apply to the whole board. Owner and business type come from the live
+// snapshot, so a rep can see only their own book.
+let FAE='', FTYPE='', LIVE=null;
 
 const CLOSING=[
  {col:'Harrisburg Area Community College',o:'C',arr:70000,pr:60,d:'2026-08-31',
@@ -365,7 +392,30 @@ document.getElementById('tiles').innerHTML=[
      'None of these are performance problems. They are fields that will quietly distort a forecast.')})
 ].join('');
 
-document.getElementById('closing').innerHTML=CLOSING.map(c=>{
+function ownerOf(name){
+  if(!LIVE) return null;
+  const d=(LIVE.deals&&LIVE.deals.open||[]).find(x=>x.org===name);
+  return d?d.owner:null;
+}
+function typeOf(name){
+  if(!LIVE) return null;
+  const d=(LIVE.deals&&LIVE.deals.open||[]).find(x=>x.org===name);
+  if(!d) return null;
+  const p=(LIVE.pipelines||[]).find(x=>x.id===d.pipelineId);
+  return p?p.name:null;
+}
+function keep(name){
+  if(FAE){ const o=ownerOf(name); if(o!==FAE && FIRST[FAE]!==o) return false; }
+  if(FTYPE && typeOf(name)!==FTYPE) return false;
+  return true;
+}
+
+function paintClosing(){
+  const rows=CLOSING.filter(c=>keep(c.col));
+  document.getElementById('fhits').textContent =
+    (FAE||FTYPE) ? rows.length+' of '+CLOSING.length+' deals closing in 90 days'
+                 : CLOSING.length+' deals closing in 90 days';
+  document.getElementById('closing').innerHTML = rows.length ? rows.map(c=>{
   const dd=days(c.d);
   const f=dd<=30?'soon':(c.next==='Nothing booked'?'gap':'info');
   return '<div class="arow" tabindex="0"><div><div class="nm">'+esc(c.col)+'</div>'+
@@ -374,7 +424,9 @@ document.getElementById('closing').innerHTML=CLOSING.map(c=>{
     '<span class="amt">'+money(c.arr)+'</span>'+
     panel(c.col,[['Expected close',dLab(c.d)],['Days away',dd],['Probability',c.pr+'%'],
       ['Weighted',money(c.arr*c.pr/100)],['Next step',c.next]],c.note)+'</div>';
-}).join('');
+  }).join('') : '<div class="empty">No deals match that filter.</div>';
+}
+paintClosing();
 
 document.getElementById('hyg').innerHTML=HYG.map(h=>
   '<div class="arow" tabindex="0"><div><div class="nm">'+h.t+'</div>'+
@@ -396,16 +448,16 @@ const FEEDTILES=[
            b.filter(x=>x.pipedriveOrgId).length+' at accounts you already have';},
   unit:' bids',
   blank:'No bids yet. They arrive with the next refresh.'},
- {id:'ipeds',label:'Below the Grad Rate Threshold',url:'/ipeds.html',
+ {id:'ipeds',label:'Below the Graduation Rate Threshold',url:'/ipeds.html',
   fill:'linear-gradient(155deg,#F49A4C,#E07A1C)',glow:'rgba(242,135,46,0.5)',
   count:d=>{const m=(d.ipeds&&d.ipeds.matched)||[];
     return m.filter(x=>x.belowThreshold===true).length;},
   sub:d=>{const ip=d.ipeds||{},m=ip.matched||[];
     const rated=m.filter(x=>typeof x.gradRate==='number').length;
-    return 'Completion under '+(ip.lowThreshold||40)+'% &middot; '+rated+' of '+m.length+
+    return 'Graduation rate under '+(ip.lowThreshold||40)+'% &middot; '+rated+' of '+m.length+
       ' accounts have a rate resolved';},
   unit:' schools',
-  blank:'No completion rates resolved yet. Check /api/probe/ipeds.'},
+  blank:'No graduation rates resolved yet. Check /api/probe/ipeds.'},
  {id:'lead',label:'Leadership Changes',url:'/leadership.html',
   fill:'linear-gradient(155deg,#3A9382,#2E7D6B)',glow:'rgba(46,125,107,0.5)',
   count:d=>((d.leadership&&d.leadership.moves)||[]).length,
@@ -440,10 +492,23 @@ function paintFeedTiles(d){
   }).join('');
 }
 
+function wireFilters(d){
+  const owners=[...new Set((d.deals&&d.deals.open||[]).map(x=>x.owner).filter(Boolean))];
+  const sel=document.getElementById('fae');
+  sel.innerHTML='<option value="">All account executives</option>'
+    +owners.map(o=>'<option value="'+o+'">'+o+'</option>').join('');
+  const repaint=()=>{ FAE=sel.value; FTYPE=document.getElementById('ftype').value; paintClosing(); };
+  sel.addEventListener('change',repaint);
+  document.getElementById('ftype').addEventListener('change',repaint);
+  document.getElementById('fclear').addEventListener('click',()=>{
+    sel.value=''; document.getElementById('ftype').value=''; repaint();
+  });
+}
+
 Promise.all([
   fetch('/api/data').then(r=>r.ok?r.json():{}).catch(()=>({})),
   fetch('/api/plans').then(r=>r.ok?r.json():{results:[]}).catch(()=>({results:[]})),
-]).then(([d,p])=>{ PLANS=p||{results:[]}; paintFeedTiles(d||{}); });
+]).then(([d,p])=>{ PLANS=p||{results:[]}; LIVE=d||{}; paintFeedTiles(LIVE); wireFilters(LIVE); paintClosing(); });
 
 document.getElementById('feedlist').innerHTML=FEEDS.map(f=>{
   const lbl={now:'Free API today',soon:'Needs a decision',hard:'Manual for now'}[f.tag];

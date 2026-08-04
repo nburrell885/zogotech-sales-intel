@@ -78,6 +78,16 @@
     border-radius:16px;padding:18px 22px;font-size:13px;color:var(--ink-2);margin:30px 0;line-height:1.6}
   .note .mark{flex:none;width:4px;border-radius:3px;background:var(--orange)}
   .note b{color:var(--navy);font-weight:600}
+
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .filters input[type=search]{flex:1 1 240px;min-width:190px}
+  .filters select{font-family:'Inter';font-size:13px;padding:12px 14px;border:1px solid var(--rule);
+    border-radius:11px;background:var(--paper);color:var(--ink);cursor:pointer;min-width:160px}
+  .filters select:focus-visible,.filters input:focus-visible{outline:none;border-color:var(--sky);
+    box-shadow:0 0 0 3px rgba(62,155,214,.2)}
+  .filters .ghost{background:transparent;color:var(--ink-2);border:1px solid var(--rule);padding:11px 16px}
+  .filters .ghost:hover{border-color:var(--sky);color:var(--navy)}
+  .hits{font-size:11.5px;color:var(--ink-3);padding:2px 4px 10px}
   .foot{font-size:10.5px;color:var(--ink-3);text-align:center;padding-top:24px;line-height:1.7}
 </style>
 </head>
@@ -90,14 +100,24 @@
   <div class="strip" id="strip"></div>
 
   <div class="sec"><span class="oline"></span><h2>Below the Threshold</h2><span class="line"></span></div>
-  <div class="secsub" id="lowsub">Accounts whose IPEDS completion rate falls under the threshold. These are institutions with the exact problem the product solves, and the rate is their own published federal number rather than anything inferred.</div>
+  <div class="secsub" id="lowsub">Accounts whose IPEDS graduation rate falls under the threshold. These are institutions with the exact problem the product solves, and the rate is their own published federal number rather than anything inferred.</div>
   <div class="panel" id="low"></div>
 
   <div class="sec"><span class="oline"></span><h2>Matched Accounts</h2><span class="line"></span></div>
   <div class="secsub">Every Pipedrive organisation confidently matched to an IPEDS unit ID. Matching is by name, so anything uncertain goes to the review list below rather than being guessed at.</div>
   <div class="panel" style="padding:14px 24px 8px">
-    <input type="search" id="q" placeholder="Filter by institution name">
+    <div class="filters">
+      <input type="search" id="q" placeholder="Filter by institution name">
+      <select id="ae"><option value="">All account executives</option></select>
+      <select id="band">
+        <option value="">Every graduation rate</option>
+        <option value="low">Below the threshold</option>
+        <option value="none">No rate resolved</option>
+      </select>
+      <button id="clear" class="ghost">Clear</button>
+    </div>
   </div>
+  <div class="hits" id="hits"></div>
   <div class="panel" id="list"></div>
 
   <div class="sec"><span class="oline"></span><h2>Needs a Human</h2><span class="line"></span></div>
@@ -113,15 +133,36 @@ var esc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/<
 function card(k,v,c,f,g){return '<div class="cell" style="--fill:linear-gradient(155deg,'+f+'dd,'+f+');--glow:'+g+'">'
   +'<div class="k">'+k+'</div><div class="v">'+v+'</div><div class="cap">'+c+'</div></div>'}
 
+// Populate the account-executive dropdown from whatever the page loaded.
+// Only reps who actually appear are listed, each with a count.
+function buildAE(list, get){
+  var counts={}, none=0;
+  (list||[]).forEach(function(x){
+    var o=get(x);
+    if(o) counts[o]=(counts[o]||0)+1; else none++;
+  });
+  var names=Object.keys(counts).sort();
+  el('ae').innerHTML='<option value="">All account executives ('+(list||[]).length+')</option>'
+    +names.map(function(n){return '<option value="'+n+'">'+n+' ('+counts[n]+')</option>'}).join('')
+    +(none?'<option value="__none">No owner ('+none+')</option>':'');
+}
+
 function paint(){
   var q=(el('q').value||'').toLowerCase().trim();
-  var rows=M.filter(function(m){return !q||(m.orgName+' '+(m.ipedsName||'')).toLowerCase().indexOf(q)>-1});
+  var ae=el('ae').value, band=el('band').value;
+  var rows=M.filter(function(m){
+    if(ae && m.owner!==ae) return false;
+    if(band==='low' && !(typeof m.gradRate==='number' && m.gradRate<LOW)) return false;
+    if(band==='none' && typeof m.gradRate==='number') return false;
+    return !q||(m.orgName+' '+(m.ipedsName||'')).toLowerCase().indexOf(q)>-1;
+  });
+  el('hits').textContent=(q||ae||band)? rows.length+' of '+M.length+' accounts' : M.length+' accounts';
   el('list').innerHTML = rows.length ? rows.slice(0,200).map(function(m){
     return '<div class="row" style="grid-template-columns:minmax(0,1fr) auto 110px">'
       +'<div><div class="nm">'+esc(m.orgName)+'</div>'
       +'<div class="who">IPEDS: '+esc(m.ipedsName||'')+'</div></div>'
       +'<div>'+(typeof m.gradRate==='number'
-          ? '<span class="chip '+(m.gradRate<LOW?'warn':'good')+'">'+m.gradRate+'% completion</span>'
+          ? '<span class="chip '+(m.gradRate<LOW?'warn':'good')+'">'+m.gradRate+'% graduation</span>'
           : '<span class="chip dim">no rate</span>')+'</div>'
       +'<div class="amt" style="font-size:12px">'+m.unitid+'</div></div>';
   }).join('')+(rows.length>200?'<div class="empty">Showing the first 200 of '+rows.length+'.</div>':'')
@@ -134,24 +175,24 @@ fetch('/api/data').then(function(r){return r.json()}).then(function(d){
   LOW=ip.lowThreshold||40;
   withRate=M.filter(function(m){return typeof m.gradRate==='number'});
   low=withRate.filter(function(m){return m.gradRate<LOW}).sort(function(a,b){return a.gradRate-b.gradRate});
-  el('lowsub').textContent='Accounts whose IPEDS completion rate falls under '+LOW+'%. '
+  el('lowsub').textContent='Accounts whose IPEDS graduation rate falls under '+LOW+'%. '
     +'These are institutions with the exact problem the product solves, and the rate is their own '
     +'published federal number rather than anything inferred. Change the threshold with IPEDS_LOW_GRAD_RATE.';
   el('low').innerHTML = low.length ? low.map(function(m){
     return '<div class="row" style="grid-template-columns:minmax(0,1fr) auto 96px">'
       +'<div><div class="nm">'+esc(m.orgName)+'</div>'
       +'<div class="who">IPEDS '+m.unitid+(m.gradMethod?' &middot; from '+esc(m.gradMethod):'')+'</div></div>'
-      +'<div><span class="chip '+(m.gradRate<25?'warn':'info')+'">'+m.gradRate+'% completion</span></div>'
+      +'<div><span class="chip '+(m.gradRate<25?'warn':'info')+'">'+m.gradRate+'% graduation</span></div>'
       +'<div class="amt" style="font-size:12px">'+(m.gradRate<25?'severe':'below')+'</div></div>';
   }).join('') : '<div class="empty">'+(withRate.length
       ? 'No matched account falls below '+LOW+'%.'
-      : 'No completion rates resolved yet. Check /api/probe/ipeds to confirm the grad-rates endpoint is responding.')+'</div>';
+      : 'No graduation rates resolved yet. Check /api/probe/ipeds to confirm the grad-rates endpoint is responding.')+'</div>';
   el('stamp').textContent=d.pulledAt?'Pulled '+new Date(d.pulledAt).toLocaleString():'No data yet';
   el('strip').innerHTML=[
     card('Matched',M.length,'Pipedrive accounts tied to an IPEDS unit ID','#1D5488','rgba(29,84,136,.5)'),
-    card('With a Rate',withRate.length,'Completion rate resolved from IPEDS','#2E7D6B','rgba(46,125,107,.45)'),
+    card('With a Rate',withRate.length,'Graduation rate resolved from IPEDS','#2E7D6B','rgba(46,125,107,.45)'),
     card('Universe',(ip.universe||0).toLocaleString(),'Two-year institutions in IPEDS for '+(ip.year||''),'#3E9BD6','rgba(62,155,214,.5)'),
-    card('Below '+LOW+'%',low.length,'Completion under the threshold','#F2872E','rgba(242,135,46,.5)')
+    card('Below '+LOW+'%',low.length,'Graduation rate under the threshold','#F2872E','rgba(242,135,46,.5)')
   ].join('');
   el('review').innerHTML = R.length ? R.slice(0,80).map(function(r){
     return '<div class="row" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr) 96px">'
@@ -160,12 +201,33 @@ fetch('/api/data').then(function(r){return r.json()}).then(function(d){
       +'<div class="who">closest IPEDS name</div></div>'
       +'<div><span class="chip warn">'+Math.round((r.score||0)*100)+'%</span></div></div>';
   }).join('') : '<div class="empty">Nothing waiting. Every account matched cleanly or not at all.</div>';
+  fillSelect('ae','All account executives',M,function(m){return m.owner});
   el('foot').textContent = ip.attribution ||
     'Integrated Postsecondary Education Data System, Education Data Portal, Urban Institute, made available under the ODC Attribution License.';
+  buildAE(M, function(m){return m.owner});
   paint();
 }).catch(function(){el('list').innerHTML='<div class="empty">Could not load data.</div>'});
 
+
+// Populate a dropdown from the data, with counts, hiding options nobody has.
+function fillSelect(id, allLabel, rows, valueOf){
+  var counts={};
+  rows.forEach(function(r){
+    var vs=valueOf(r); if(!vs) return;
+    (Array.isArray(vs)?vs:[vs]).forEach(function(v){ if(v) counts[v]=(counts[v]||0)+1; });
+  });
+  var keys=Object.keys(counts).sort(function(a,b){return counts[b]-counts[a]});
+  var el=document.getElementById(id); if(!el) return;
+  var keep=el.value;
+  el.innerHTML='<option value="">'+allLabel+' ('+rows.length+')</option>'
+    +keys.map(function(k){return '<option value="'+k.replace(/"/g,'&quot;')+'">'+k+' ('+counts[k]+')</option>'}).join('');
+  if(keep) el.value=keep;
+}
+
 el('q').addEventListener('input',paint);
+el('ae').addEventListener('change',paint);
+el('band').addEventListener('change',paint);
+el('clear').addEventListener('click',function(){el('q').value='';el('ae').value='';el('band').value='';paint();});
 </script>
 </body>
 </html>
