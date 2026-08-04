@@ -70,27 +70,68 @@ export function score(left, right) {
 
 // Returns { matched, review, unmatched }. Anything between the two thresholds
 // is surfaced for a human rather than guessed at.
-export function reconcile(sources, targets, {
+//
+// Async and yielding on purpose. Comparing every source against every target is
+// O(n x m) and blocks the event loop long enough for a hosting platform to
+// decide the app is dead and return 502. Two changes fix that: an inverted token
+// index so only plausible candidates are scored, and a yield every so often so
+// the web server keeps answering while this runs.
+export async function reconcile(sources, targets, {
   sourceName = (x) => x.name,
   targetName = (x) => x.name,
   accept = 0.85,
   consider = 0.55,
-  aliases = {},          // { "nwacc": "Northwest Arkansas Community College" }
+  aliases = {},
+  yieldEvery = 200,
 } = {}) {
   const alias = new Map(
     Object.entries(aliases).map(([k, v]) => [normalise(k), normalise(v)]),
   );
+
+  // token -> indices of targets containing it, plus an exact-name lookup
+  const index = new Map();
+  const exact = new Map();
+  targets.forEach((t, i) => {
+    const name = targetName(t);
+    exact.set(normalise(name), i);
+    for (const tok of new Set(tokens(name))) {
+      if (!index.has(tok)) index.set(tok, []);
+      index.get(tok).push(i);
+    }
+  });
+
   const matched = [], review = [], unmatched = [];
+  let seen = 0;
+
   for (const s of sources) {
+    if (++seen % yieldEvery === 0) await new Promise((r) => setImmediate(r));
+
     const raw = sourceName(s);
     const canonical = alias.get(normalise(raw));
-    let best = null, bestScore = 0;
-    for (const t of targets) {
-      // An alias is a human decision, so it beats anything the scorer produces.
-      if (canonical && normalise(targetName(t)) === canonical) { best = t; bestScore = 1; break; }
-      const v = score(raw, targetName(t));
-      if (v > bestScore) { bestScore = v; best = t; }
+
+    // An alias is a human decision, so it beats anything the scorer produces.
+    if (canonical && exact.has(canonical)) {
+      matched.push({ source: s, target: targets[exact.get(canonical)], score: 1 });
+      continue;
     }
+    const self = exact.get(normalise(raw));
+    if (self !== undefined) {
+      matched.push({ source: s, target: targets[self], score: 1 });
+      continue;
+    }
+
+    // Only targets sharing a distinctive token are worth scoring.
+    const candidates = new Set();
+    for (const tok of new Set(tokens(raw))) {
+      for (const i of index.get(tok) || []) candidates.add(i);
+    }
+
+    let best = null, bestScore = 0;
+    for (const i of candidates) {
+      const v = score(raw, targetName(targets[i]));
+      if (v > bestScore) { bestScore = v; best = targets[i]; }
+    }
+
     if (bestScore >= accept) matched.push({ source: s, target: best, score: +bestScore.toFixed(3) });
     else if (bestScore >= consider) review.push({ source: s, target: best, score: +bestScore.toFixed(3) });
     else unmatched.push({ source: s, score: +bestScore.toFixed(3) });
