@@ -2,9 +2,8 @@
 // a URL. One file: add a report here and it appears on all of them.
 (function () {
   var REPORTS = [
-    ['/',                     'Home',            'Refresh and index'],
-    ['/mike-dashboard.html',  'Executive',       'Sales performance'],
     ['/sales-dashboard.html', 'Sales',           'Team board'],
+    ['/mike-dashboard.html',  'Executive',       'Sales performance'],
     ['/ae-dashboard.html',    'AE Board',        'Closing and hygiene'],
     ['/arr-attainment.html',  'ARR Attainment',  'Against quota'],
     ['/arr-pipeline.html',    'Pipeline',        'Open and won'],
@@ -12,7 +11,9 @@
     ['/leads-by-ae.html',     'Leads',           'Set per week'],
   ];
 
-  var here = location.pathname.replace(/\/index\.html$/, '/');
+  // / redirects to the sales dashboard, so treat them as the same tab
+  var here = location.pathname;
+  if (here === '/' || here === '/index.html') here = '/sales-dashboard.html';
 
   var css = document.createElement('style');
   css.textContent = [
@@ -40,7 +41,7 @@
   bar.className = 'ztnav';
   bar.innerHTML = '<div class="ztnav-in"><span class="brand"><span class="dot"></span>ZogoTech</span>'
     + REPORTS.map(function (r) {
-        var on = (r[0] === '/' ? here === '/' : here === r[0]) ? ' class="on"' : '';
+        var on = here === r[0] ? ' class="on"' : '';
         return '<a href="' + r[0] + '"' + on + ' title="' + r[2] + '">' + r[1] + '</a>';
       }).join('')
     + '<span class="stamp" id="ztstamp"></span></div>';

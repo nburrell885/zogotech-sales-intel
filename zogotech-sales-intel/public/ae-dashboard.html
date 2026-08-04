@@ -120,7 +120,13 @@
   .flag.ok{background:rgba(46,125,107,0.14);color:var(--good)}
   .flag.gap{background:rgba(194,90,58,0.13);color:var(--miss)}
   .flag.info{background:rgba(62,155,214,0.16);color:var(--navy-2)}
-  .arow .tip{position:absolute;left:0;right:auto;bottom:calc(100% + 8px);min-width:260px;max-width:380px}
+  /* the hide rule was scoped to .tile .tip, so panels inside a row were
+     permanently visible and stacked on top of each other */
+  .arow .tip{position:absolute;left:0;right:auto;bottom:calc(100% + 8px);
+    min-width:260px;max-width:380px;z-index:60;background:#0A1F33;color:#fff;
+    border-radius:13px;padding:14px 16px;box-shadow:0 18px 42px -8px rgba(6,20,34,.68);
+    opacity:0;transform:translateY(6px);pointer-events:none;
+    transition:opacity .15s,transform .15s;font-size:11.5px;text-align:left}
   .arow:hover .tip,.arow:focus-within .tip{opacity:1;transform:translateY(0)}
 
   /* feed roadmap */
