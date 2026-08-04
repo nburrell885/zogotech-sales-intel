@@ -3,9 +3,10 @@
 
 import 'dotenv/config';
 import { snapshot } from '../lib/pipedrive.js';
-import { communityColleges, directoryFor, metricsFor, ATTRIBUTION } from '../lib/ipeds.js';
+import { communityColleges, directoryFor, metricsFor, completionByUnit, ATTRIBUTION } from '../lib/ipeds.js';
 import { reconcile } from '../lib/match.js';
 import { ingest } from '../lib/rfp.js';
+import { ingest as ingestLeadership } from '../lib/leadership.js';
 import { read, write } from '../lib/store.js';
 
 const IPEDS_YEAR = Number(process.env.IPEDS_YEAR || 2022);
@@ -82,25 +83,41 @@ export async function refresh({ includeRfp = true, includeIpeds = true } = {}) {
     try {
       const universe = await communityColleges(IPEDS_YEAR);
       const orgs = pd.orgs.map((o) => ({ id: o.id, name: o.name }));
-      const rec = reconcile(orgs, universe, {
+      const rec = await reconcile(orgs, universe, {
         sourceName: (o) => o.name,
         targetName: (i) => i.inst_name || i.institution_name || i.name,
       });
       const unitids = rec.matched.map((m) => m.target.unitid).filter(Boolean);
-      const metrics = unitids.length
-        ? await metricsFor(unitids.slice(0, 200), IPEDS_YEAR).catch(() => [])
+      // Completion rate per institution, so accounts can be ranked by it.
+      // Everything below the threshold is a school with the exact problem the
+      // product solves, which is the whole point of pulling IPEDS at all.
+      const LOW = Number(process.env.IPEDS_LOW_GRAD_RATE || 40);
+      const completion = unitids.length
+        ? await completionByUnit(unitids.slice(0, Number(process.env.IPEDS_MAX || 300)), IPEDS_YEAR).catch((e) => {
+            errors.push(`IPEDS completion: ${e.message}`); return [];
+          })
         : [];
+      const rateBy = new Map(completion.map((c) => [c.unitid, c]));
+      const metrics = completion;
       ipeds = {
         attribution: ATTRIBUTION,
         year: IPEDS_YEAR,
         universe: universe.length,
-        matched: rec.matched.map((m) => ({
-          orgId: m.source.id,
-          orgName: m.source.name,
-          unitid: m.target.unitid,
-          ipedsName: m.target.inst_name || m.target.institution_name,
-          score: m.score,
-        })),
+        lowThreshold: LOW,
+        matched: rec.matched.map((m) => {
+          const c = rateBy.get(m.target.unitid);
+          return {
+            orgId: m.source.id,
+            orgName: m.source.name,
+            unitid: m.target.unitid,
+            ipedsName: m.target.inst_name || m.target.institution_name,
+            state: m.target.fips ?? null,
+            score: m.score,
+            gradRate: c ? c.rate : null,
+            gradMethod: c ? c.method : null,
+            belowThreshold: c ? c.rate < LOW : null,
+          };
+        }),
         review: rec.review.map((m) => ({
           orgName: m.source.name,
           candidate: m.target?.inst_name || m.target?.institution_name || null,
@@ -125,6 +142,24 @@ export async function refresh({ includeRfp = true, includeIpeds = true } = {}) {
     } catch (e) {
       errors.push(`RFP: ${e.message}`);
     }
+  }
+
+  // ---- leadership changes -------------------------------------------------
+  let leadership = await read('leadership', { moves: [], sources: [] });
+  try {
+    const aliases = (await read('aliases', {})) || {};
+    delete aliases._comment;
+    const fresh = await ingestLeadership({
+      orgs: pd.orgs.map((o) => ({ id: o.id, name: o.name })),
+      days: Number(process.env.LEADERSHIP_DAYS || 120),
+      aliases,
+    });
+    // keep anything already seen, so a feed dropping an item does not lose it
+    const prior = new Map((leadership.moves || []).map((m) => [m.link || m.title, m]));
+    for (const m of fresh.moves) prior.set(m.link || m.title, { ...prior.get(m.link || m.title), ...m });
+    leadership = { ...fresh, moves: [...prior.values()] };
+  } catch (e) {
+    errors.push(`Leadership: ${e.message}`);
   }
 
   const data = {
@@ -153,14 +188,17 @@ export async function refresh({ includeRfp = true, includeIpeds = true } = {}) {
     })),
     ipeds,
     rfp,
+    leadership,
   };
 
   await write('snapshot', data);
   await write('rfp', rfp);
+  await write('leadership', leadership);
   return { pulledAt: data.pulledAt, tookMs: data.tookMs, errors, counts: {
     open: deals.open.length, won: deals.won.length, lost: deals.lost.length,
     leads: (pd.leads || []).length, notes: data.notes.length,
     bids: (rfp.bids || []).length, ipedsMatched: ipeds.matched.length,
+    leadershipMoves: (leadership.moves || []).length,
   } };
 }
 
