@@ -3,7 +3,8 @@
 
 import 'dotenv/config';
 import { snapshot } from '../lib/pipedrive.js';
-import { communityColleges, directoryFor, metricsFor, completionByUnit, ATTRIBUTION } from '../lib/ipeds.js';
+import { communityColleges, directoryFor, metricsFor, completionByUnit,
+  discoverCompletion, completionByPath, ATTRIBUTION } from '../lib/ipeds.js';
 import { reconcile } from '../lib/match.js';
 import { ingest } from '../lib/rfp.js';
 import { ingest as ingestLeadership } from '../lib/leadership.js';
@@ -92,11 +93,22 @@ export async function refresh({ includeRfp = true, includeIpeds = true } = {}) {
       // Everything below the threshold is a school with the exact problem the
       // product solves, which is the whole point of pulling IPEDS at all.
       const LOW = Number(process.env.IPEDS_LOW_GRAD_RATE || 40);
-      const completion = unitids.length
-        ? await completionByUnit(unitids.slice(0, Number(process.env.IPEDS_MAX || 300)), IPEDS_YEAR).catch((e) => {
-            errors.push(`IPEDS completion: ${e.message}`); return [];
-          })
+
+      // Work out which endpoint and year actually carry usable rates, rather
+      // than assuming and reporting zeros when the assumption is wrong.
+      const found = await discoverCompletion({ years: [IPEDS_YEAR, 2021, 2020, 2019, 2018] })
+        .catch((e) => ({ endpoint: null, error: e.message, tried: [] }));
+
+      const completion = (unitids.length && found.endpoint)
+        ? await completionByPath(
+            unitids.slice(0, Number(process.env.IPEDS_MAX || 300)),
+            found.endpoint, found.year,
+          ).catch((e) => { errors.push(`IPEDS completion: ${e.message}`); return []; })
         : [];
+
+      if (!found.endpoint) {
+        errors.push('IPEDS: no completion endpoint returned usable rows. See ipeds.discovery.');
+      }
       const rateBy = new Map(completion.map((c) => [c.unitid, c]));
       const metrics = completion;
       ipeds = {
@@ -104,6 +116,9 @@ export async function refresh({ includeRfp = true, includeIpeds = true } = {}) {
         year: IPEDS_YEAR,
         universe: universe.length,
         lowThreshold: LOW,
+        discovery: found,
+        completionEndpoint: found.endpoint,
+        completionYear: found.year,
         matched: rec.matched.map((m) => {
           const c = rateBy.get(m.target.unitid);
           return {
