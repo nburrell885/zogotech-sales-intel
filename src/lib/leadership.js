@@ -59,8 +59,13 @@ const OPEN_SEARCHES = [
   '"community college" "presidential search" finalists',
   '"community college" "interim president"',
   '"community college" provost named OR appointed',
-  '"community college" "chief information officer" named OR appointed',
-  '"community college" "institutional research" director named',
+  '"community college" "chief information officer" named OR appointed OR hired',
+  '"community college" CIO named OR appointed OR "steps down"',
+  '"community college" "chief technology officer" named OR appointed',
+  '"community college" "institutional research" director named OR appointed OR hired',
+  '"community college" "institutional effectiveness" named OR appointed',
+  '"community college" "chief academic officer" named OR appointed',
+  '"community college" "vice president of student services" named OR appointed',
   '"technical college" "named president" OR "new president"',
 ].map((q) => ({ name: `Open search: ${q.slice(0, 40)}`, url: gnews(q), search: true, open: true }));
 
@@ -130,13 +135,30 @@ function parseFeed(xml) {
   });
 }
 
+// Two-year institutions only. A president named at a research university is
+// noise here, and the open searches pull plenty of them.
+const TWO_YEAR = [
+  'community college', 'technical college', 'junior college', 'city college',
+  'county college', 'state college', 'technical and community',
+  'community and technical', 'ccd', 'community college district',
+];
+
+export function isCommunityCollege(item) {
+  const hay = `${item.title} ${item.summary}`;
+  return TWO_YEAR.some((k) => new RegExp(k.replace(/ /g, '\\s+'), 'i').test(hay));
+}
+
 export function isLeadershipMove(item) {
   const hay = `${item.title} ${item.summary}`;
   const titles = TITLES.filter((t) => word(t).test(hay));
   const events = EVENTS.filter((e) => word(e).test(hay));
   // The title must be in the headline: a passing mention in the body is noise.
   const inHeadline = TITLES.some((t) => word(t).test(item.title));
-  return { titles, events, isMove: inHeadline && events.length > 0 };
+  return {
+    titles, events,
+    twoYear: isCommunityCollege(item),
+    isMove: inHeadline && events.length > 0,
+  };
 }
 
 async function readFeed(feed, ms = 15000) {
@@ -155,7 +177,7 @@ async function readFeed(feed, ms = 15000) {
   }
 }
 
-export async function ingest({ orgs = [], days = 120, aliases = {} } = {}) {
+export async function ingest({ orgs = [], days = 365, aliases = {} } = {}) {
   // Batched rather than all at once: thirteen simultaneous fetches is enough to
   // trip rate limits and enough concurrency to matter on a small container.
   const sources = [];
@@ -187,6 +209,8 @@ export async function ingest({ orgs = [], days = 120, aliases = {} } = {}) {
         published: when ? new Date(when).toISOString().slice(0, 10) : null,
         titles: flag.titles,
         events: flag.events,
+        twoYear: flag.twoYear,
+        feed: src.name,
       });
     }
   }
