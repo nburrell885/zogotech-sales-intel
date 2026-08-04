@@ -98,14 +98,30 @@ const EVENTS = [
 
 const word = (k) => new RegExp(`(^|[^a-z])${k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`, 'i');
 
-function strip(x = '') {
+function decode(x = '') {
   return String(x)
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
-    .replace(/<[^>]+>/g, ' ')
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
-    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&nbsp;/g, ' ')
-    .replace(/\s+/g, ' ').trim();
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'")
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');
+}
+
+// Google News wraps its descriptions in HTML-encoded anchors, so the tags arrive
+// as &lt;a href=...&gt; rather than as markup. Decoding first and stripping
+// second is the only order that removes them; the other way round turns encoded
+// tags into visible text, which is what was leaking into the source line.
+function strip(x = '') {
+  let t = String(x).replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
+  for (let i = 0; i < 3; i++) {
+    const before = t;
+    t = decode(t).replace(/<[^>]*>/g, ' ');
+    if (t === before) break;
+  }
+  return t
+    .replace(/https?:\/\/\S+/g, ' ')   // bare URLs add nothing to a summary
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 const tag = (block, name) => {
